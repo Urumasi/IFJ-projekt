@@ -1,6 +1,9 @@
 # Binaries
 ifj20c
 
+# IDE folders
+.idea/
+
 # Prerequisites
 *.d
 
@@ -21,6 +24,7 @@ obj/
 *.pch
 
 # Libraries
+lib/
 *.lib
 *.a
 *.la
