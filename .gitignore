@@ -5,6 +5,7 @@ ifj20c
 *.d
 
 # Object files
+obj/
 *.o
 *.ko
 *.obj
