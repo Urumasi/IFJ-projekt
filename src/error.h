@@ -16,14 +16,14 @@
 #define __ERROR_H__
 
 #define ERROR_CODE_OK 	0 // Succesful return code
-#define LEX_ERROR		1 // Lexical error
-#define SYN_ERROR		2 // Syntactic error
-#define SEM_ERROR		3 // Semantic error - undefined variable, redefinition of a function, etc.
-#define SEM_TYPE_ERROR	4 // Semantic error - error while deducing type of new defined variable. 
-#define SEM_COMP_ERROR	5 // Semantic error - error of type compability.
-#define SEM_PARAM_ERROR	6 // Semantic error - wrong parameters, wrong return type.
-#define SEM_OTHER_ERROR	7 // Semantic error - other.
-#define DIV_ZERO_ERROR	9 // Divison by zero.
-#define INTERNAL_ERROR	99 // Internal error of compiler (eg. failed allocation of memory).
+#define ERROR_LEX		1 // Lexical error
+#define ERROR_SYN		2 // Syntactic error
+#define ERROR_SEM		3 // Semantic error - undefined variable, redefinition of a function, etc.
+#define ERROR_SEM_TYPE	4 // Semantic error - error while deducing type of new defined variable. 
+#define ERROR_SEM_COMP	5 // Semantic error - error of type compability.
+#define ERROR_SEM_PARAM	6 // Semantic error - wrong parameters, wrong return type.
+#define ERROR_SEM_OTHER	7 // Semantic error - other.
+#define ERROR_DIV_ZERO	9 // Divison by zero.
+#define ERROR_INTERNAL	99 // Internal error of compiler (eg. failed allocation of memory).
 
 #endif //__ERROR_H__
