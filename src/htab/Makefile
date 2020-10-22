@@ -8,7 +8,7 @@ CFLAGS = -std=c99 -Wall -Wextra -pedantic -O2 -fPIC
 
 OBJ_DIR = obj
 
-MODULES = htab_begin htab_clear htab_erase htab_free htab_init htab_iterator_get_key htab_iterator_next htab_lookup_add htab_bucket_count htab_end htab_find htab_hash_fun htab_iterator htab_iterator_get_value htab_iterator_set_value htab_size
+MODULES = htab
 OBJS = $(MODULES:%=$(OBJ_DIR)/%.o)
 
 
@@ -19,7 +19,7 @@ all: libhtab.a
 libhtab.a: $(OBJS)
 	ar rcs $@ $^
 
-$(OBJ_DIR)/%.o: %.c htab.h htab_structs.h
+$(OBJ_DIR)/%.o: %.c htab.h htab_iterator.h htab_structs.h
 	@mkdir -p $(@D)
 	$(CC) $(CFLAGS) -c $< -o $@
 
