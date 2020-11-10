@@ -1,9 +1,9 @@
 /**
  * IFJ Project 2020: Team 008, variant II
  *
- * @file
+ * @file scanner.h
  *
- * @brief scanner.h
+ * @brief 
  *
  *
  * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
@@ -42,6 +42,7 @@ typedef union {
 
 typedef enum {
     TOKEN_EQ,
+    TOKEN_NEQ,
     TOKEN_LEQ,
     TOKEN_GEQ,
     TOKEN_LT,
@@ -53,6 +54,7 @@ typedef enum {
     TOKEN_DIV,
 
     TOKEN_ASSIGN,
+    TOKEN_VAR_DEF,
     TOKEN_COMMA,
     TOKEN_SEMICOLON,
     TOKEN_RBRACKET,
@@ -61,7 +63,7 @@ typedef enum {
     TOKEN_KEYWORD,
     TOKEN_IDENTIFIER,
     TOKEN_EOL,
-    TOKEL_EOF,
+    TOKEN_EOF,
     TOKEN_INT,
     TOKEN_FLOAT,
     TOKEN_STRING,
@@ -75,7 +77,6 @@ typedef struct {
 
 void setSourceFile(FILE* f);
 
-void setString(string* str);
 
 int getNextToken(Token* token);
 

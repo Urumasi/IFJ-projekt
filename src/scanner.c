@@ -28,18 +28,21 @@
 #define SCANNER_STATE_FLOAT 6
 #define SCANNER_STATE_EXPONENT 7
 #define SCANNER_STATE_EXPONENT_SIGNED 8
-#define SCANNER_STATE_FINAL_NUMBER 9 
-#define SCANNER_STATE_STRING_START 10
-#define SCANNER_STATE_STRING 11 
-#define SCANNER_STATE_ESCAPE 12
-#define SCANNER_STATE_LESS_THAN 13
-#define SCANNER_STATE_MORE_THAN 14
-#define SCANNER_STATE_COMMENTARY 15
-#define SCANNER_STATE_BLOCK_COMMENTARY_START 16
-#define SCANNER_STATE_BLOCK_COMMENTARY_EXIT 17
-#define SCANNER_STATE_ASSIGN 18
-#define SCANNER_STATE_EQUAL 19
-#define SCANNER_STATE_NOT_EQUAL 20
+#define SCANNER_STATE_FINAL_NUMBER 9
+#define SCANNER_STATE_STRING 10 
+#define SCANNER_STATE_ESCAPE 11
+#define SCANNER_STATE_LESS_THAN 12
+#define SCANNER_STATE_MORE_THAN 13
+#define SCANNER_STATE_COMMENTARY 14
+#define SCANNER_STATE_BLOCK_COMMENTARY_START 15
+#define SCANNER_STATE_BLOCK_COMMENTARY_EXIT 16
+#define SCANNER_STATE_ASSIGN 17
+#define SCANNER_STATE_EQUAL 18
+#define SCANNER_STATE_NOT_EQUAL 19
+#define SCANNER_STATE_SLASH 20
+#define SCANNER_STATE_VARIABLE_DEF 21
+#define SCANNER_STATE_CHARACTER 22
+#define SCANNER_STATE_CHARACTER_SECOND 23
 
 
 
@@ -49,10 +52,6 @@ string* setStr;
 
 void setSourceFile(FILE* f) {
     sourceFile = f;
-}
-
-void setString(string* str) {
-    setStr = str;
 }
 
 static int freeResources(int exitCode, string* str) {
@@ -116,14 +115,8 @@ int getNextToken(Token* token) {
         return ERROR_INTERNAL;
     }
 
-    if (setStr == NULL) {
-        return ERROR_INTERNAL;
-    }
-
-    token->attribute.string = setStr;
-
-    string str_ing;
-    string* str = &str_ing;
+    string stringstr;
+    string* str = &stringstr;
     if (strInit(str)) {
         return ERROR_INTERNAL;
     }
@@ -131,7 +124,7 @@ int getNextToken(Token* token) {
     int state = SCANNER_STATE_START;
     token->type = TOKEN_NOTHING;
 
-    char c, * endptr, strnumber[4] = { 0 };
+    char c, character[2] = { 0 };
 
     while (true) {
         c = (char)getc(sourceFile);
@@ -144,9 +137,6 @@ int getNextToken(Token* token) {
             else if (c == '\n') {
                 state = SCANNER_STATE_EOL;
             }
-            else if (c == '"') {
-                state = SCANNER_STATE_STRING;
-            }
             else if (c == '+') {
                 token->type = TOKEN_PLUS;
                 return freeResources(ERROR_CODE_OK, str);
@@ -158,6 +148,21 @@ int getNextToken(Token* token) {
             else if (c == '*') {
                 token->type = TOKEN_MUL;
                 return freeResources(ERROR_CODE_OK, str);
+            }
+            else if (c == '/') {
+                state = SCANNER_STATE_SLASH;
+            }
+            else if (c == '<') {
+                state = SCANNER_STATE_LESS_THAN;
+            }
+            else if (c == '>') {
+                state = SCANNER_STATE_MORE_THAN;
+            }
+            else if (c == '=') {
+                state = SCANNER_STATE_EQUAL;
+            }
+            else if (c == '!') {
+                state = SCANNER_STATE_NOT_EQUAL;
             }
             else if (c == '(') {
                 token->type = TOKEN_LBRACKET;
@@ -175,23 +180,8 @@ int getNextToken(Token* token) {
                 token->type = TOKEN_SEMICOLON;
                 return freeResources(ERROR_CODE_OK, str);
             }
-            else if (c == '<') {
-                state = SCANNER_STATE_LESS_THAN;
-            }
-            else if (c == '>') {
-                state = SCANNER_STATE_MORE_THAN;
-            }
             else if (c == ':') {
-                state = SCANNER_STATE_ASSIGN;
-            }
-            else if (c == '!') {
-                state = SCANNER_STATE_NOT_EQUAL;
-            }
-            else if (c == '=') {
-                state = SCANNER_STATE_EQUAL;
-            }
-            else if (c == '/') {
-                state = SCANNER_STATE_COMMENTARY;
+                state = SCANNER_STATE_VARIABLE_DEF;
             }
             else if (isalpha(c) || c == '_') {
                 if (!strAddChar(str, (char)tolower(c))) {
@@ -205,14 +195,82 @@ int getNextToken(Token* token) {
                 }
                 state = SCANNER_STATE_NUMBER;
             }
+            else if (c == '"') {
+                state = SCANNER_STATE_STRING;
+            }
             else if (c == EOF) {
-                token->type = TOKEL_EOF;
+                token->type = TOKEN_EOF;
                 return freeResources(ERROR_CODE_OK, str);
             }
             else {
                 return freeResources(ERROR_LEX, str);
             }
             break;
+
+        case (SCANNER_STATE_LESS_THAN):
+            if (c == '=') {
+                token->type = TOKEN_LEQ;
+            }
+            else {
+                ungetc(c, sourceFile);
+                token->type = TOKEN_LT;
+            }
+            return freeResources(ERROR_CODE_OK, str);
+
+        case(SCANNER_STATE_MORE_THAN):
+            if (c == '=') {
+                token->type = TOKEN_GEQ;
+            }
+            else {
+                ungetc(c, sourceFile);
+                token->type = TOKEN_GT;
+            }
+            return freeResources(ERROR_CODE_OK, str);
+
+        case(SCANNER_STATE_EQUAL):
+            if (c == '=') {
+                token->type = TOKEN_EQ;
+            }
+            else {
+                ungetc(c, sourceFile);
+                token->type = TOKEN_ASSIGN;
+            }
+            return freeResources(ERROR_CODE_OK, str);
+
+        case(SCANNER_STATE_NOT_EQUAL):
+            if (c == '=') {
+                token->type = TOKEN_NEQ;
+                return freeResources(ERROR_CODE_OK, str);
+            }
+            else {
+                ungetc(c, sourceFile);
+                return freeResources(ERROR_LEX, str);
+            }
+            break;
+
+        case(SCANNER_STATE_VARIABLE_DEF):
+            if (c == '=') {
+                token->type = TOKEN_VAR_DEF;
+                return freeResources(ERROR_CODE_OK, str);
+            }
+            else {
+                ungetc(c, sourceFile);
+                return freeResources(ERROR_LEX, str);
+            }
+            break;
+
+        case (SCANNER_STATE_KEYWORD_OR_IDENTIFIER):
+            if (isalnum(c) || c == '_') {
+                if (!strAddChar(str, (char)tolower(c))) {
+                    return freeResources(ERROR_INTERNAL, str);
+                }
+            }
+            else {
+                ungetc(c, sourceFile);
+                return processingKeywordIdentifier(str, token);
+            }
+            break;
+
 
         case (SCANNER_STATE_NUMBER):
             if (isdigit(c)) {
@@ -310,6 +368,7 @@ int getNextToken(Token* token) {
             }
             break;
 
+
         case (SCANNER_STATE_STRING):
             if (c < 32) {
                 return freeResources(ERROR_LEX, str);
@@ -363,39 +422,128 @@ int getNextToken(Token* token) {
                 }
                 state = SCANNER_STATE_STRING;
             }
+            else if (c == 'x') {
+                state = SCANNER_STATE_CHARACTER;
+            }
             else {
                 return freeResources(ERROR_LEX, str);
             }
             break;
 
-        case (SCANNER_STATE_LESS_THAN):
-            if (c == '=') {
-                token->type = TOKEN_LEQ;
+        case(SCANNER_STATE_CHARACTER):
+            if (c > 47 && c < 58) {
+                character[0] = c;
+                state = SCANNER_STATE_CHARACTER_SECOND;
+            }
+            else if (c > 64 && c < 71) {
+                character[0] = c;
+                state = SCANNER_STATE_CHARACTER_SECOND;
+            }
+            else if (c > 96 && c < 103) {
+                character[0] = c;
+                state = SCANNER_STATE_CHARACTER_SECOND;
+            }
+            else {
+                return freeResources(ERROR_LEX, str);
+            }
+            break;
+
+        case(SCANNER_STATE_CHARACTER_SECOND):
+            if (c > 47 && c < 58) {
+                character[1] = c;
+                int val = (int)strtol(character, NULL, 16);
+                c = (char)val;
+                if (!strAddChar(str, c)) {
+                    return freeResources(ERROR_INTERNAL, str);
+                }
+                state = SCANNER_STATE_STRING;
+            }
+            else if (c > 64 && c < 71) {
+                character[1] = c;
+                int val = (int)strtol(character, NULL, 16);
+                c = (char)val;
+                if (!strAddChar(str, c)) {
+                    return freeResources(ERROR_INTERNAL, str);
+                }
+                state = SCANNER_STATE_STRING;
+            }
+            else if (c > 96 && c < 103) {
+                character[1] = c;
+                int val = (int)strtol(character, NULL, 16);
+                c = (char)val;
+                if (!strAddChar(str, c)) {
+                    return freeResources(ERROR_INTERNAL, str);
+                }
+                state = SCANNER_STATE_STRING;
+            }
+            else {
+                return freeResources(ERROR_LEX, str);
+            }
+            break;
+
+
+        case(SCANNER_STATE_SLASH):
+            if (c == '/') {
+                state = SCANNER_STATE_COMMENTARY;
+            }
+            else if (c == '*') {
+                state = SCANNER_STATE_BLOCK_COMMENTARY_START;
             }
             else {
                 ungetc(c, sourceFile);
-                token->type = TOKEN_LT;
+                token->type = TOKEN_DIV;
+                return freeResources(ERROR_CODE_OK, str);
             }
+            break;
+        
+
+        case(SCANNER_STATE_COMMENTARY):
+            while (c != '\n') {
+                c = (char)getc(sourceFile);
+                if (c == EOF) {
+                    state = SCANNER_STATE_START;
+                    ungetc(c, sourceFile);
+                    break;
+                }
+            }
+            if (c == '\n') {
+                state = SCANNER_STATE_START;
+                ungetc(c, sourceFile);
+            }
+            break;
+
+        case(SCANNER_STATE_BLOCK_COMMENTARY_START):
+            if (c == '*') {
+                state = SCANNER_STATE_BLOCK_COMMENTARY_EXIT;
+            }
+            else if (c == EOF) {
+                return freeResources(ERROR_LEX, str);
+            }
+            break;
+
+        case(SCANNER_STATE_BLOCK_COMMENTARY_EXIT):
+            if (c == EOF) {
+                return freeResources(ERROR_LEX, str);
+            }
+            else if (c == '/') {
+                state = SCANNER_STATE_START;
+            }
+            else if (c == '*') {
+                state = SCANNER_STATE_BLOCK_COMMENTARY_EXIT;
+            }
+            else {
+                state = SCANNER_STATE_BLOCK_COMMENTARY_START;
+            }
+            break;
+
+        case (SCANNER_STATE_EOL):
+            if (isspace(c)) {
+                break;
+            }
+            ungetc(c, sourceFile);
+            token->type = TOKEN_EOL;
             return freeResources(ERROR_CODE_OK, str);
 
-        case(SCANNER_STATE_MORE_THAN):
-            if (c == '=') {
-                token->type = TOKEN_GEQ;
-            }
-            else {
-                ungetc(c, sourceFile);
-                token->type = TOKEN_GT;
-            }
-            return freeResources(ERROR_CODE_OK, str);
-
-        case (SCANNER_STATE_ASSIGN):
-            if (c == '=') {
-                token->type = TOKEN_ASSIGN;
-            }
-            else {
-                ungetc(c, sourceFile);
- //VYRIEŠIŤ
-            }
 
         }//switch
     }//while
