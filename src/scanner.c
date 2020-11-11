@@ -61,15 +61,15 @@ static int freeResources(int exitCode, string* str) {
 
 
 static int processingKeywordIdentifier(string* str, Token* token) {
-	if (strCmpConstStr(str, "else")) token->attribute.keyword = KW_ELSE;
-	else if (strCmpConstStr(str, "float64")) token->attribute.keyword = KW_FLOAT64;
-	else if (strCmpConstStr(str, "for")) token->attribute.keyword = KW_FOR;
-	else if (strCmpConstStr(str, "func")) token->attribute.keyword = KW_FUNC;
-	else if (strCmpConstStr(str, "if")) token->attribute.keyword = KW_IF;
-	else if (strCmpConstStr(str, "int")) token->attribute.keyword = KW_INT;
-	else if (strCmpConstStr(str, "package")) token->attribute.keyword = KW_PACKAGE;
-	else if (strCmpConstStr(str, "return")) token->attribute.keyword = KW_RETURN;
-	else if (strCmpConstStr(str, "string")) token->attribute.keyword = KW_STRING;
+	if (strCmpConstStr(str, "else") == 0) token->attribute.keyword = KW_ELSE;
+	else if (strCmpConstStr(str, "float64") == 0) token->attribute.keyword = KW_FLOAT64;
+	else if (strCmpConstStr(str, "for") == 0) token->attribute.keyword = KW_FOR;
+	else if (strCmpConstStr(str, "func") == 0) token->attribute.keyword = KW_FUNC;
+	else if (strCmpConstStr(str, "if") == 0) token->attribute.keyword = KW_IF;
+	else if (strCmpConstStr(str, "int") == 0) token->attribute.keyword = KW_INT;
+	else if (strCmpConstStr(str, "package") == 0) token->attribute.keyword = KW_PACKAGE;
+	else if (strCmpConstStr(str, "return") == 0) token->attribute.keyword = KW_RETURN;
+	else if (strCmpConstStr(str, "string") == 0) token->attribute.keyword = KW_STRING;
 	else token->type = TOKEN_IDENTIFIER;
 
     if (token->type != TOKEN_IDENTIFIER) {
@@ -77,7 +77,7 @@ static int processingKeywordIdentifier(string* str, Token* token) {
         return freeResources(ERROR_CODE_OK, str);
     }
 
-    if (!strCmpString(str, token->attribute.string)) {
+    if (strCopyString(token->attribute.string, str) == 1) {
         return freeResources(ERROR_INTERNAL, str);
     }
 
@@ -131,11 +131,11 @@ int getNextToken(Token* token) {
 
         switch (state) {
         case (SCANNER_STATE_START):
-            if (isspace(c)) {
-                state = SCANNER_STATE_START;
-            }
-            else if (c == '\n') {
+            if (c == '\n') {
                 state = SCANNER_STATE_EOL;
+            }
+            else if (isspace(c)) {
+                state = SCANNER_STATE_START;               
             }
             else if (c == '+') {
                 token->type = TOKEN_PLUS;
@@ -170,6 +170,14 @@ int getNextToken(Token* token) {
             }
             else if (c == ')') {
                 token->type = TOKEN_RBRACKET;
+                return freeResources(ERROR_CODE_OK, str);
+            }
+            else if (c == '{') {
+                token->type = TOKEN_LCURLYBRACKET;
+                return freeResources(ERROR_CODE_OK, str);
+            }
+            else if (c == '}') {
+                token->type = TOKEN_RCURLYBRACKET;
                 return freeResources(ERROR_CODE_OK, str);
             }
             else if (c == ',') {
@@ -374,7 +382,7 @@ int getNextToken(Token* token) {
                 return freeResources(ERROR_LEX, str);
             }
             else if (c == '"') {
-                if (strCopyString(str, token->attribute.string) == 1) {
+                if (strCopyString(token->attribute.string, str) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 token->type = TOKEN_STRING;
