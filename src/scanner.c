@@ -61,15 +61,15 @@ static int freeResources(int exitCode, string* str) {
 
 
 static int processingKeywordIdentifier(string* str, Token* token) {
-	if (!strCmpConstStr(str, "else")) token->attribute.keyword = KW_ELSE;
-	else if (!strCmpConstStr(str, "float64")) token->attribute.keyword = KW_FLOAT64;
-	else if (!strCmpConstStr(str, "for")) token->attribute.keyword = KW_FOR;
-	else if (!strCmpConstStr(str, "func")) token->attribute.keyword = KW_FUNC;
-	else if (!strCmpConstStr(str, "if")) token->attribute.keyword = KW_IF;
-	else if (!strCmpConstStr(str, "int")) token->attribute.keyword = KW_INT;
-	else if (!strCmpConstStr(str, "package")) token->attribute.keyword = KW_PACKAGE;
-	else if (!strCmpConstStr(str, "return")) token->attribute.keyword = KW_RETURN;
-	else if (!strCmpConstStr(str, "string")) token->attribute.keyword = KW_STRING;
+	if (strCmpConstStr(str, "else")) token->attribute.keyword = KW_ELSE;
+	else if (strCmpConstStr(str, "float64")) token->attribute.keyword = KW_FLOAT64;
+	else if (strCmpConstStr(str, "for")) token->attribute.keyword = KW_FOR;
+	else if (strCmpConstStr(str, "func")) token->attribute.keyword = KW_FUNC;
+	else if (strCmpConstStr(str, "if")) token->attribute.keyword = KW_IF;
+	else if (strCmpConstStr(str, "int")) token->attribute.keyword = KW_INT;
+	else if (strCmpConstStr(str, "package")) token->attribute.keyword = KW_PACKAGE;
+	else if (strCmpConstStr(str, "return")) token->attribute.keyword = KW_RETURN;
+	else if (strCmpConstStr(str, "string")) token->attribute.keyword = KW_STRING;
 	else token->type = TOKEN_IDENTIFIER;
 
     if (token->type != TOKEN_IDENTIFIER) {
@@ -184,13 +184,13 @@ int getNextToken(Token* token) {
                 state = SCANNER_STATE_VARIABLE_DEF;
             }
             else if (isalpha(c) || c == '_') {
-                if (!strAddChar(str, (char)tolower(c))) {
+                if (strAddChar(str, (char)tolower(c)) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_KEYWORD_OR_IDENTIFIER;
             }
             else if (isdigit(c)) {
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_NUMBER;
@@ -261,7 +261,7 @@ int getNextToken(Token* token) {
 
         case (SCANNER_STATE_KEYWORD_OR_IDENTIFIER):
             if (isalnum(c) || c == '_') {
-                if (!strAddChar(str, (char)tolower(c))) {
+                if (strAddChar(str, (char)tolower(c)) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -274,19 +274,19 @@ int getNextToken(Token* token) {
 
         case (SCANNER_STATE_NUMBER):
             if (isdigit(c)) {
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
             else if (c == '.') {
                 state = SCANNER_STATE_DECIMAL_POINT;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
             else if (tolower(c) == 'e') {
                 state = SCANNER_STATE_EXPONENT;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -299,7 +299,7 @@ int getNextToken(Token* token) {
         case (SCANNER_STATE_DECIMAL_POINT):
             if (isdigit(c)) {
                 state = SCANNER_STATE_FLOAT;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -310,13 +310,13 @@ int getNextToken(Token* token) {
 
         case(SCANNER_STATE_FLOAT):
             if (isdigit(c)) {
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
             else if (tolower(c) == 'e') {
                 state = SCANNER_STATE_EXPONENT;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -329,13 +329,13 @@ int getNextToken(Token* token) {
         case (SCANNER_STATE_EXPONENT):
             if (isdigit(c)) {
                 state = SCANNER_STATE_FINAL_NUMBER;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
             else if (c == '+' || c == '-') {
                 state = SCANNER_STATE_EXPONENT_SIGNED;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -347,7 +347,7 @@ int getNextToken(Token* token) {
         case(SCANNER_STATE_EXPONENT_SIGNED):
             if (isdigit(c)) {
                 state = SCANNER_STATE_FINAL_NUMBER;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -358,7 +358,7 @@ int getNextToken(Token* token) {
 
         case (SCANNER_STATE_FINAL_NUMBER):
             if (isdigit(c)) {
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -374,7 +374,7 @@ int getNextToken(Token* token) {
                 return freeResources(ERROR_LEX, str);
             }
             else if (c == '"') {
-                if (!strCopyString(str, token->attribute.string)) {
+                if (strCopyString(str, token->attribute.string) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 token->type = TOKEN_STRING;
@@ -384,7 +384,7 @@ int getNextToken(Token* token) {
                 state = SCANNER_STATE_ESCAPE;
             }
             else {
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
             }
@@ -396,28 +396,28 @@ int getNextToken(Token* token) {
             }
             else if (c == '"') {
                 c = '"';
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_STRING;
             }
             else if (c == 'n') {
                 c = '\n';
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_STRING;
             }
             else if (c == 't') {
                 c = '\t';
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_STRING;
             }
             else if (c == '\\') {
                 c = '\\';
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_STRING;
@@ -453,7 +453,7 @@ int getNextToken(Token* token) {
                 character[1] = c;
                 int val = (int)strtol(character, NULL, 16);
                 c = (char)val;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_STRING;
@@ -462,7 +462,7 @@ int getNextToken(Token* token) {
                 character[1] = c;
                 int val = (int)strtol(character, NULL, 16);
                 c = (char)val;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_STRING;
@@ -471,7 +471,7 @@ int getNextToken(Token* token) {
                 character[1] = c;
                 int val = (int)strtol(character, NULL, 16);
                 c = (char)val;
-                if (!strAddChar(str, c)) {
+                if (strAddChar(str, c) == 1) {
                     return freeResources(ERROR_INTERNAL, str);
                 }
                 state = SCANNER_STATE_STRING;
