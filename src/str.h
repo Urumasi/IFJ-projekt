@@ -1,3 +1,6 @@
+//prevzaný súbor zo stránky predmetu IFJ
+
+
 //hlavickovy soubor pro praci s nekonecne dlouhymi retezci
 
 typedef struct

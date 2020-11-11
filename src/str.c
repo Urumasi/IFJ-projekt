@@ -1,3 +1,5 @@
+//prevzaný súbor zo stránky predmetu IFJ
+
 //jednoducha knihovna pro praci s nekonecne dlouhymi retezci
 #include <string.h>
 #include <malloc.h>
