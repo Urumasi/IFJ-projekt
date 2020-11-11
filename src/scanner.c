@@ -115,6 +115,11 @@ int getNextToken(Token* token) {
         return ERROR_INTERNAL;
     }
 
+    string strToken;
+    if (strInit(&strToken))
+        return ERROR_INTERNAL;
+    token->attribute.string = &strToken;
+
     string stringstr;
     string* str = &stringstr;
     if (strInit(str)) {
