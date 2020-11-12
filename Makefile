@@ -6,7 +6,7 @@ OBJ_DIR = obj
 LIB_DIR = lib
 
 TARGET = ifj20c
-MODULES = main
+MODULES = main scanner parser str
 SOURCES = $(MODULES:%=$(SRC_DIR)/%.c)
 OBJS = $(MODULES:%=$(OBJ_DIR)/%.o)
 
