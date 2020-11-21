@@ -42,6 +42,7 @@
 #define SCANNER_STATE_VARIABLE_DEF 21
 #define SCANNER_STATE_CHARACTER 22
 #define SCANNER_STATE_CHARACTER_SECOND 23
+#define SCANNER_STATE_ZERO_CONTROL 24
 
 FILE *sourceFile;
 string *setStr;
@@ -49,6 +50,11 @@ string *setStr;
 void setSourceFile(FILE *f)
 {
     sourceFile = f;
+}
+
+void setString(string *s)
+{
+    setStr = s;
 }
 
 static int freeResources(int exitCode, string *str)
@@ -86,11 +92,10 @@ static int processingKeywordIdentifier(string *str, Token *token)
         return freeResources(ERROR_CODE_OK, str);
     }
 
-    // TODO - memory leak - na 0. odevzdání jsem to zakomentoval, zatím to není potřeba
-    // if (strCopyString(token->attribute.string, str) == 1)
-    // {
-    //     return freeResources(ERROR_INTERNAL, str);
-    // }
+    if (strCopyString(token->attribute.string, str) == 1)
+    {
+        return freeResources(ERROR_INTERNAL, str);
+    }
 
     return freeResources(ERROR_CODE_OK, str);
 }
@@ -131,15 +136,11 @@ int getNextToken(Token *token)
         return ERROR_INTERNAL;
     }
 
-    // TODO - memory leak - na 0. odevzdání jsem to zakomentoval, zatím to není potřeba
-    // string strToken;
-    // if (strInit(&strToken))
-    //     return ERROR_INTERNAL;
-    // token->attribute.string = &strToken;
+    token->attribute.string = setStr;
 
     string stringstr;
     string *str = &stringstr;
-    if (strInit(str))
+    if (strInit(str) == 1)
     {
         return ERROR_INTERNAL;
     }
@@ -241,6 +242,10 @@ int getNextToken(Token *token)
                 }
                 state = SCANNER_STATE_KEYWORD_OR_IDENTIFIER;
             }
+            else if (c == '0')
+            {
+                state = SCANNER_STATE_ZERO_CONTROL;
+            }
             else if (isdigit(c))
             {
                 if (strAddChar(str, c) == 1)
@@ -338,6 +343,18 @@ int getNextToken(Token *token)
             {
                 ungetc(c, sourceFile);
                 return processingKeywordIdentifier(str, token);
+            }
+            break;
+
+        case (SCANNER_STATE_ZERO_CONTROL):
+            if (isdigit(c) != 0)
+            {
+                return freeResources(ERROR_LEX, str);
+            }
+            else
+            {
+                ungetc(c, sourceFile);
+                state = SCANNER_STATE_NUMBER;
             }
             break;
 
@@ -470,11 +487,10 @@ int getNextToken(Token *token)
             }
             else if (c == '"')
             {
-                // TODO - memory leak - na 0. odevzdání jsem to zakomentoval, zatím to není potřeba
-                // if (strCopyString(token->attribute.string, str) == 1)
-                // {
-                //     return freeResources(ERROR_INTERNAL, str);
-                // }
+                if (strCopyString(token->attribute.string, str) == 1)
+                {
+                    return freeResources(ERROR_INTERNAL, str);
+                }
                 token->type = TOKEN_STRING;
                 return freeResources(ERROR_CODE_OK, str);
             }

@@ -78,7 +78,7 @@ typedef struct {
 } Token;
 
 void setSourceFile(FILE* f);
-
+void setString(string* s);
 
 int getNextToken(Token* token);
 
