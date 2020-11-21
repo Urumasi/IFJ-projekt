@@ -1,0 +1,3 @@
+[submodule "tests/ifj-testsuite"]
+	path = tests/ifj-testsuite
+	url = https://gitlab.com/kam29/ifj-testsuite.git
