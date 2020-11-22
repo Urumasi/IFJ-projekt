@@ -16,6 +16,7 @@
 #include <stdbool.h>
 #include "scanner.h"
 #include "parser.h"
+#include "expression.h"
 #include "error.h"
 
 /**
@@ -90,7 +91,6 @@ bool tokenProcesed = true;
  */
 int parse()
 {
-
     int error = package();
     return error;
 }
@@ -304,7 +304,8 @@ int body()
         getRule(definition);
         getType(TOKEN_SEMICOLON);
         // getRule(expression);
-        getRule(value);
+        getRule(expression);
+        tokenProcesed = false;
         getType(TOKEN_SEMICOLON);
         getRule(assign);
         getType(TOKEN_LCURLYBRACKET);
@@ -318,8 +319,8 @@ int body()
     // <body> -> IF <expression> { EOL <body> } ELSE { EOL <body> } EOL <body>
     else if (isKeyword(KW_IF))
     {
-        // getRule(expression);
-        getRule(value);
+        getRule(expression);
+        tokenProcesed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -483,33 +484,35 @@ int assign()
 int value()
 {
     int error;
-    getToken();
-    // <value> -> ID <func>
-    if (isType(TOKEN_IDENTIFIER))
-    {
-        getRule(func);
-        return ERROR_CODE_OK;
-    }
-    // <value> -> VALUE_INT
-    else if (isType(TOKEN_INT))
-    {
-        return ERROR_CODE_OK;
-    }
-    // <value> -> VALUE_FLOAT64
-    else if (isType(TOKEN_FLOAT))
-    {
-        return ERROR_CODE_OK;
-    }
-    // <value> -> VALUE_STRING
-    else if (isType(TOKEN_STRING))
-    {
-        return ERROR_CODE_OK;
-    }
-    // <value> -> <expression>
-    // else if ()
+    getRule(expression);
+    tokenProcesed = false;
+    // getToken();
+    // // <value> -> ID <func>
+    // if (isType(TOKEN_IDENTIFIER))
     // {
+    //     getRule(func);
+    //     return ERROR_CODE_OK;
     // }
-    syntaxError();
+    // // <value> -> VALUE_INT
+    // else if (isType(TOKEN_INT))
+    // {
+    //     return ERROR_CODE_OK;
+    // }
+    // // <value> -> VALUE_FLOAT64
+    // else if (isType(TOKEN_FLOAT))
+    // {
+    //     return ERROR_CODE_OK;
+    // }
+    // // <value> -> VALUE_STRING
+    // else if (isType(TOKEN_STRING))
+    // {
+    //     return ERROR_CODE_OK;
+    // }
+    // // <value> -> <expression>
+    // // else if ()
+    // // {
+    // // }
+    // syntaxError();
 }
 
 /**
@@ -582,7 +585,7 @@ int arg()
         return ERROR_CODE_OK;
     }
     // <arg> -> ε
-    else if (isType(TOKEN_RBRACKET))
+    else if (isType(TOKEN_RBRACKET) || isType(TOKEN_EOL))
     {
         tokenProcesed = false;
         return ERROR_CODE_OK;
