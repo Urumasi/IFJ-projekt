@@ -33,10 +33,19 @@ int main(int argc, char *argv[])
         fp = stdin;
     setSourceFile(fp);
 
+    string str;
+    if (strInit(&str) == 1)
+    {
+        return ERROR_INTERNAL;
+    }
+    setString(&str);
+
     int error;
     error = parse();
 
-    // fprintf(stderr, "Program returned %d\n", error);
+    fprintf(stderr, "Program returned %d\n", error);
+
+    strFree(&str);
 
     fclose(fp);
     return error;

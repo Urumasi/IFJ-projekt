@@ -3,7 +3,7 @@
  *
  * @file scanner.h
  *
- * @brief 
+ * @brief Scanner interface
  *
  *
  * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
@@ -19,7 +19,9 @@
 
 #include "str.h"
 
-
+ /**
+  * @enum Reserved keywords.
+  */
 typedef enum {
     KW_ELSE,
     KW_FLOAT64,
@@ -32,6 +34,9 @@ typedef enum {
     KW_STRING,
 } Keyword;
 
+/**
+ * @union Token attribute.
+ */
 typedef union {
     Keyword keyword;
     string* string;
@@ -39,7 +44,9 @@ typedef union {
     double decimal;
 } Token_attribute;
 
-
+/**
+ * @enum Token type.
+ */
 typedef enum {
     TOKEN_EQ,
     TOKEN_NEQ,
@@ -72,14 +79,16 @@ typedef enum {
     TOKEN_NOTHING,
 } Token_type;
 
+/**
+ * @struct Token.
+ */
 typedef struct {
     Token_type type;
     Token_attribute attribute;
 } Token;
 
 void setSourceFile(FILE* f);
-
-
+void setString(string* s);
 int getNextToken(Token* token);
 
 #endif //__SCANNER_H__

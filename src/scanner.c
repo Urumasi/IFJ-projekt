@@ -3,7 +3,7 @@
  *
  * @file scanner.c
  *
- * @brief
+ * @brief Scanner implementation
  *
  *
  * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
@@ -19,44 +19,70 @@
 #include "scanner.h"
 #include "error.h"
 
-#define SCANNER_STATE_START 1
-#define SCANNER_STATE_EOL 2
-#define SCANNER_STATE_KEYWORD_OR_IDENTIFIER 3
-#define SCANNER_STATE_NUMBER 4
-#define SCANNER_STATE_DECIMAL_POINT 5
-#define SCANNER_STATE_FLOAT 6
-#define SCANNER_STATE_EXPONENT 7
-#define SCANNER_STATE_EXPONENT_SIGNED 8
-#define SCANNER_STATE_FINAL_NUMBER 9
-#define SCANNER_STATE_STRING 10
-#define SCANNER_STATE_ESCAPE 11
-#define SCANNER_STATE_LESS_THAN 12
-#define SCANNER_STATE_MORE_THAN 13
-#define SCANNER_STATE_COMMENTARY 14
-#define SCANNER_STATE_BLOCK_COMMENTARY_START 15
-#define SCANNER_STATE_BLOCK_COMMENTARY_EXIT 16
-#define SCANNER_STATE_ASSIGN 17
-#define SCANNER_STATE_EQUAL 18
-#define SCANNER_STATE_NOT_EQUAL 19
-#define SCANNER_STATE_SLASH 20
-#define SCANNER_STATE_VARIABLE_DEF 21
-#define SCANNER_STATE_CHARACTER 22
-#define SCANNER_STATE_CHARACTER_SECOND 23
+#define SCANNER_STATE_START 1 // Starting state.
+#define SCANNER_STATE_EOL 2 // End of line.
+#define SCANNER_STATE_KEYWORD_OR_IDENTIFIER 3 // Starts with underscore or alpha, later compared to keywords and executed as keyword or identifier.
+#define SCANNER_STATE_NUMBER 4 // Starts processing number.
+#define SCANNER_STATE_DECIMAL_POINT 5 // If decimal point was detected, token type is float.
+#define SCANNER_STATE_FLOAT 6 // Processing float number.
+#define SCANNER_STATE_EXPONENT 7 // If 'e' or 'E' was detected, token type is float.
+#define SCANNER_STATE_EXPONENT_SIGNED 8 // Detected wheter there is '+' or '-' after exponent.
+#define SCANNER_STATE_FINAL_NUMBER 9 // The final number with exponent.
+#define SCANNER_STATE_STRING 10 // Starts processing string.
+#define SCANNER_STATE_ESCAPE 11 // If '/' was detected, scanner is executing escape sequence.
+#define SCANNER_STATE_LESS_THAN 12 // Executing wheter there is '=' after '<'.
+#define SCANNER_STATE_MORE_THAN 13 // Executing wheter there is '=' sfter '>'
+#define SCANNER_STATE_COMMENTARY 14 // Line commentary that is ignored.
+#define SCANNER_STATE_BLOCK_COMMENTARY_START 15 // Start of block commentary, reads until sequence '*/' is found. 
+#define SCANNER_STATE_BLOCK_COMMENTARY_EXIT 16 // Character '/' has been found, ignores everything in the block.
+#define SCANNER_STATE_ASSIGN 17 // Executing wheter there is only one '=' in the row.
+#define SCANNER_STATE_EQUAL 18 // Executing wheter there are two '=' in the row. 
+#define SCANNER_STATE_NOT_EQUAL 19 // Executing wheter there is '=' after '!'. 
+#define SCANNER_STATE_SLASH 20 // Executing wheter read character is division or commentary.
+#define SCANNER_STATE_VARIABLE_DEF 21 // Executing wheter there is '=' after ':'.
+#define SCANNER_STATE_CHARACTER 22 // Character a in sequence '/xab'.
+#define SCANNER_STATE_CHARACTER_SECOND 23 // Character b in sequence '/xab'.
+#define SCANNER_STATE_ZERO_CONTROL 24 // Controls leading zeros.
 
 FILE *sourceFile;
 string *setStr;
 
+/**
+ * @brief Sets source file.
+ * @param f File that will be set as a source file.
+ */
 void setSourceFile(FILE *f)
 {
     sourceFile = f;
 }
 
-static int freeResources(int exitCode, string *str)
+/**
+ * @brief Sets string.
+ * @param s String that will be set as an attribute.
+ */
+void setString(string *s)
 {
-    strFree(str);
+    setStr = s;
+}
+
+/**
+ * @brief Frees resources and returns exit code.
+ * @param exitCode Exit code
+ * @param s String that will be freed.
+ * @return Returns exit code.
+ */
+static int freeResources(int exitCode, string *s)
+{
+    strFree(s);
     return exitCode;
 }
 
+/**
+ * @brief Identifies keywords or identifiers.
+ * @param str String that will be compared to keywords and assigned as a keyword or an identifiers.
+ * @param token Token whose string attribute will be set.
+ * @return Returns exit code.
+ */
 static int processingKeywordIdentifier(string *str, Token *token)
 {
     if (strCmpConstStr(str, "else") == 0)
@@ -86,15 +112,20 @@ static int processingKeywordIdentifier(string *str, Token *token)
         return freeResources(ERROR_CODE_OK, str);
     }
 
-    // TODO - memory leak - na 0. odevzdání jsem to zakomentoval, zatím to není potřeba
-    // if (strCopyString(token->attribute.string, str) == 1)
-    // {
-    //     return freeResources(ERROR_INTERNAL, str);
-    // }
+    if (strCopyString(token->attribute.string, str) == 1)
+    {
+        return freeResources(ERROR_INTERNAL, str);
+    }
 
     return freeResources(ERROR_CODE_OK, str);
 }
 
+/**
+ * @brief Processes integers.
+ * @param token Token whose integer attribute will be set.
+ * @param str String that will be converted to integer.
+ * @return Returns exit code.
+ */
 static int proscessingInteger(Token *token, string *str)
 {
     char *endptr;
@@ -109,6 +140,12 @@ static int proscessingInteger(Token *token, string *str)
     return freeResources(ERROR_CODE_OK, str);
 }
 
+/**
+ * @brief Processes decimals.
+ * @param token Token whose decimal attribute will be set.
+ * @param str String that will be converted to float.
+ * @return Returns exit code.
+ */
 static int processingDecimal(Token *token, string *str)
 {
     char *endptr;
@@ -123,6 +160,11 @@ static int processingDecimal(Token *token, string *str)
     return freeResources(ERROR_CODE_OK, str);
 }
 
+/**
+ * @brief Produces token.
+ * @param token Token whose attribute and type will be set.
+ * @return Returns exit code.
+ */
 int getNextToken(Token *token)
 {
 
@@ -131,15 +173,11 @@ int getNextToken(Token *token)
         return ERROR_INTERNAL;
     }
 
-    // TODO - memory leak - na 0. odevzdání jsem to zakomentoval, zatím to není potřeba
-    // string strToken;
-    // if (strInit(&strToken))
-    //     return ERROR_INTERNAL;
-    // token->attribute.string = &strToken;
+    token->attribute.string = setStr;
 
     string stringstr;
     string *str = &stringstr;
-    if (strInit(str))
+    if (strInit(str) == 1)
     {
         return ERROR_INTERNAL;
     }
@@ -241,6 +279,10 @@ int getNextToken(Token *token)
                 }
                 state = SCANNER_STATE_KEYWORD_OR_IDENTIFIER;
             }
+            else if (c == '0')
+            {
+                state = SCANNER_STATE_ZERO_CONTROL;
+            }
             else if (isdigit(c))
             {
                 if (strAddChar(str, c) == 1)
@@ -338,6 +380,18 @@ int getNextToken(Token *token)
             {
                 ungetc(c, sourceFile);
                 return processingKeywordIdentifier(str, token);
+            }
+            break;
+
+        case (SCANNER_STATE_ZERO_CONTROL):
+            if (isdigit(c) != 0)
+            {
+                return freeResources(ERROR_LEX, str);
+            }
+            else
+            {
+                ungetc(c, sourceFile);
+                state = SCANNER_STATE_NUMBER;
             }
             break;
 
@@ -464,17 +518,16 @@ int getNextToken(Token *token)
             break;
 
         case (SCANNER_STATE_STRING):
-            if (c < 32)
+            if (c <= '!')
             {
                 return freeResources(ERROR_LEX, str);
             }
             else if (c == '"')
             {
-                // TODO - memory leak - na 0. odevzdání jsem to zakomentoval, zatím to není potřeba
-                // if (strCopyString(token->attribute.string, str) == 1)
-                // {
-                //     return freeResources(ERROR_INTERNAL, str);
-                // }
+                if (strCopyString(token->attribute.string, str) == 1)
+                {
+                    return freeResources(ERROR_INTERNAL, str);
+                }
                 token->type = TOKEN_STRING;
                 return freeResources(ERROR_CODE_OK, str);
             }
@@ -492,7 +545,7 @@ int getNextToken(Token *token)
             break;
 
         case (SCANNER_STATE_ESCAPE):
-            if (c < 32)
+            if (c <= '!')
             {
                 return freeResources(ERROR_LEX, str);
             }
@@ -543,17 +596,17 @@ int getNextToken(Token *token)
             break;
 
         case (SCANNER_STATE_CHARACTER):
-            if (c > 47 && c < 58)
+            if (c >= '0' && c <= '9')
             {
                 character[0] = c;
                 state = SCANNER_STATE_CHARACTER_SECOND;
             }
-            else if (c > 64 && c < 71)
+            else if (c >= 'A' && c < 'F')
             {
                 character[0] = c;
                 state = SCANNER_STATE_CHARACTER_SECOND;
             }
-            else if (c > 96 && c < 103)
+            else if (c >= 'a' && c <= 'f')
             {
                 character[0] = c;
                 state = SCANNER_STATE_CHARACTER_SECOND;
@@ -565,7 +618,7 @@ int getNextToken(Token *token)
             break;
 
         case (SCANNER_STATE_CHARACTER_SECOND):
-            if (c > 47 && c < 58)
+            if (c >= '0' && c <= '9')
             {
                 character[1] = c;
                 int val = (int)strtol(character, NULL, 16);
@@ -576,7 +629,7 @@ int getNextToken(Token *token)
                 }
                 state = SCANNER_STATE_STRING;
             }
-            else if (c > 64 && c < 71)
+            else if (c >= 'A' && c <= 'F')
             {
                 character[1] = c;
                 int val = (int)strtol(character, NULL, 16);
@@ -587,7 +640,7 @@ int getNextToken(Token *token)
                 }
                 state = SCANNER_STATE_STRING;
             }
-            else if (c > 96 && c < 103)
+            else if (c >= 'a' && c <= 'f')
             {
                 character[1] = c;
                 int val = (int)strtol(character, NULL, 16);
@@ -679,5 +732,5 @@ int getNextToken(Token *token)
             return freeResources(ERROR_CODE_OK, str);
 
         } //switch
-    }     //while
+    } //while
 } //funkcia
