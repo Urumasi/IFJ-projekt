@@ -369,6 +369,7 @@ int for_definition(Parser *parser)
     // <for_definition> -> ID <definition>
     if (isType(TOKEN_IDENTIFIER))
     {
+        parser->countLeft = 1;
         getRule(definition);
     }
     // <for_definition> -> ε
@@ -390,6 +391,7 @@ int for_assign(Parser *parser)
     // <for_assign> -> ID <assign>
     if (isType(TOKEN_IDENTIFIER))
     {
+        parser->countLeft = 1;
         getRule(assign);
     }
     // <for_assign> -> ε
@@ -419,7 +421,6 @@ int value(Parser *parser)
     {
         getRule(expression_n);
     }
-
     return ERROR_CODE_OK;
 }
 
@@ -453,6 +454,7 @@ int expression_n(Parser *parser)
  */
 int definition(Parser *parser)
 {
+    parser->countLeft = 1;
     // <definition> -> := <expression>
     getType(TOKEN_VAR_DEF);
     getRule(expression);
@@ -466,10 +468,14 @@ int definition(Parser *parser)
  */
 int assign(Parser *parser)
 {
+    parser->countLeft = 1;
     // <assign> -> <id_n> = <value>
     getRule(id_n);
     getType(TOKEN_ASSIGN);
     getRule(value);
+    // number of items on the left and right is not equal
+    if (parser->countLeft != parser->countRight)
+        return ERROR_SEM_OTHER;
     return ERROR_CODE_OK;
 }
 
