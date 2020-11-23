@@ -19,8 +19,9 @@ typedef struct parser
 {
     Token token;
     int returnCode;
-    bool tokenProcesed;
+    bool tokenProcessed;
     bool declaredMain;
+    bool funcInExpr;
 } Parser;
 
 int initParser(Parser *parser);
@@ -54,13 +55,13 @@ int list(Parser *parser);
  *  
  */
 #define getToken()                                                                \
-    if (parser->tokenProcesed)                                                    \
+    if (parser->tokenProcessed)                                                   \
     {                                                                             \
         if ((parser->returnCode = getNextToken(&parser->token)) != ERROR_CODE_OK) \
             return parser->returnCode;                                            \
     }                                                                             \
     else                                                                          \
-        parser->tokenProcesed = true
+        parser->tokenProcessed = true
 
 /**
  * @brief Checks if token type is same as argument

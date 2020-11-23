@@ -42,12 +42,24 @@ sémantika - možná budu dělat já
 
 int expression(Parser *parser)
 {
+    parser->funcInExpr = false;
+    bool idFirst = false;
     int tokenCount = 0;
     do
     {
         getToken();
+
+        if (tokenCount == 0 && isType(TOKEN_IDENTIFIER))
+            idFirst = true;
+        else if (tokenCount == 1 && idFirst && isType(TOKEN_LBRACKET))
+        {
+            parser->funcInExpr = true;
+            parser->tokenProcessed = false;
+            return ERROR_CODE_OK;
+        }
+
         tokenCount++;
     } while (!(isType(TOKEN_SEMICOLON) || isType(TOKEN_COMMA) || isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL) || isType(TOKEN_RBRACKET)));
-    parser->tokenProcesed = false;
+    parser->tokenProcessed = false;
     return (tokenCount == 1) ? ERROR_SYN : ERROR_CODE_OK;
 }

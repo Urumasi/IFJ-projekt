@@ -23,8 +23,9 @@ Parser parser;
 
 int initParser(Parser *parser)
 {
-    parser->tokenProcesed = true;
+    parser->tokenProcessed = true;
     parser->declaredMain = false;
+    parser->funcInExpr = false;
 }
 
 /**
@@ -55,7 +56,7 @@ int package(Parser *parser)
     getToken();
     while (isType(TOKEN_EOL))
         getToken();
-    parser->tokenProcesed = false;
+    parser->tokenProcessed = false;
 
     // <package> -> PACKAGE ID EOL <prog>
     getKeyword(KW_PACKAGE);
@@ -121,7 +122,7 @@ int params(Parser *parser)
     // <params> -> ε
     else if (isType(TOKEN_RBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -165,7 +166,7 @@ int params_n(Parser *parser)
     // <params_n> -> ε
     else if (isType(TOKEN_RBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -187,7 +188,7 @@ int ret(Parser *parser)
     // <ret> -> ε
     else if (isType(TOKEN_LCURLYBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -208,7 +209,7 @@ int ret_params(Parser *parser)
     //<ret_params>->ε
     else if (isType(TOKEN_RBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -230,7 +231,7 @@ int ret_params_n(Parser *parser)
     //<ret_params_n>->ε
     else if (isType(TOKEN_RBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -249,7 +250,7 @@ int body(Parser *parser)
         getRule(definition);
         getType(TOKEN_SEMICOLON);
         getRule(expression);
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
         getType(TOKEN_SEMICOLON);
         getRule(assign);
         getType(TOKEN_LCURLYBRACKET);
@@ -263,7 +264,7 @@ int body(Parser *parser)
     else if (isKeyword(KW_IF))
     {
         getRule(expression);
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -298,7 +299,7 @@ int body(Parser *parser)
     // <body> -> ε
     else if (isType(TOKEN_RCURLYBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -316,10 +317,10 @@ int body_n(Parser *parser)
     {
         getRule(expression);
     }
-    //<body_n>-> <id_n> = <value
+    //<body_n>-> <id_n> = <value>
     else if (isType(TOKEN_COMMA) || isType(TOKEN_ASSIGN))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
         getRule(id_n);
         getType(TOKEN_ASSIGN);
         getRule(value);
@@ -350,7 +351,7 @@ int id_n(Parser *parser)
     //  <id_n> -> ε
     else if (isType(TOKEN_ASSIGN))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -372,7 +373,7 @@ int definition(Parser *parser)
     // <definition> -> ε
     else if (isType(TOKEN_SEMICOLON))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -395,7 +396,7 @@ int assign(Parser *parser)
     // <assign> -> ε
     else if (isType(TOKEN_LCURLYBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -407,9 +408,18 @@ int assign(Parser *parser)
  */
 int value(Parser *parser)
 {
-    // TODO
+    // <value>->ID<func>
     getRule(expression);
-    getRule(expression_n);
+    if (parser->funcInExpr)
+    {
+        getRule(func);
+    }
+    // <value>-><expression><expression_n>
+    else
+    {
+        getRule(expression_n);
+    }
+
     return ERROR_CODE_OK;
 }
 
@@ -430,7 +440,7 @@ int expression_n(Parser *parser)
     // <expression_n> -> ε
     else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -452,7 +462,7 @@ int func(Parser *parser)
     // <func> -> ε
     else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -468,14 +478,14 @@ int arg(Parser *parser)
     // <arg> -> <term> <term_n>
     if (isType(TOKEN_IDENTIFIER) || isType(TOKEN_INT) || isType(TOKEN_FLOAT) || isType(TOKEN_STRING))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
         getRule(term);
         getRule(term_n);
     }
     // <arg> -> ε
     else if (isType(TOKEN_RBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -525,7 +535,7 @@ int term_n(Parser *parser)
     // <term_n> -> ε
     else if (isType(TOKEN_RBRACKET))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
     }
     returnRule();
 }
@@ -541,13 +551,13 @@ int list(Parser *parser)
     //<list> -> ε
     if (isType(TOKEN_EOL))
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
         return ERROR_CODE_OK;
     }
     //<list> -> <value>
     else
     {
-        parser->tokenProcesed = false;
+        parser->tokenProcessed = false;
         getRule(value);
         return ERROR_CODE_OK;
     }
