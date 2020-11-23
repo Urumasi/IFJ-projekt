@@ -1,7 +1,7 @@
 /**
  * IFJ Project 2020: Team 008, variant II
  * 
- * @file parser->c
+ * @file parser.c
  * 
  * @brief
  *
