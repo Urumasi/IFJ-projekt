@@ -19,10 +19,6 @@
 #include "expression.h"
 #include "error.h"
 
-#define isType(_token) (token.type == _token)
-
-Token token;
-
 /*
 TODO
 
@@ -44,16 +40,14 @@ sémantika - možná budu dělat já
     - v přiřazení/dekleraci porovnávání být nesmí
 */
 
-int expression()
+int expression(Parser *parser)
 {
-    int error;
+    int tokenCount = 0;
     do
     {
-        error = getNextToken(&token);
-        if (error != ERROR_CODE_OK)
-            return error;
-        printf("%d, ", token.type);
+        getToken();
+        tokenCount++;
     } while (!(isType(TOKEN_SEMICOLON) || isType(TOKEN_COMMA) || isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL) || isType(TOKEN_RBRACKET)));
-    printf("\n");
-    return ERROR_CODE_OK;
+    parser->tokenProcesed = false;
+    return (tokenCount == 1) ? ERROR_SYN : ERROR_CODE_OK;
 }

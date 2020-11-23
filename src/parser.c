@@ -1,7 +1,7 @@
 /**
  * IFJ Project 2020: Team 008, variant II
  * 
- * @file parser.c
+ * @file parser->c
  * 
  * @brief
  *
@@ -19,70 +19,13 @@
 #include "expression.h"
 #include "error.h"
 
-/**
- * @brief Returns syntax error code
- * 
- */
-#define syntaxError() return ERROR_SYN
+Parser parser;
 
-/**
- * @brief Gets new token if token isn't processed. Returns error code if anything fails.
- *        Unprocessed token occurs in "<rule> -> eps" rule, meaning that current token 
- *        is from another rule and in next getToken() call, token remains the same
- * 
- */
-#define getToken()                                               \
-    if (tokenProcesed)                                           \
-    {                                                            \
-        if ((tokenCode = getNextToken(&token)) != ERROR_CODE_OK) \
-            return tokenCode;                                    \
-    }                                                            \
-    else                                                         \
-        tokenProcesed = true
-
-/**
- * @brief Checks if token type is same as argument
- * 
- */
-#define isType(_token) (token.type == _token)
-
-/**
- * @brief Gets new token and checks type. Returns syntax error code, if types don't match
- * 
- */
-#define getType(_token)  \
-    getToken();          \
-    if (!isType(_token)) \
-    syntaxError()
-
-/**
- * @brief Checks if token type is keyword and then checks if token attribute is same as argument
- * 
- */
-#define isKeyword(_keyword) ((token.type == TOKEN_KEYWORD) && (token.attribute.keyword == _keyword))
-
-/**
- * @brief Gets new token, checks if token type is keyword ane then checks token attribute. Returns syntax error code, if keywords don't match
- * 
- */
-#define getKeyword(_keyword)                 \
-    getType(TOKEN_KEYWORD);                  \
-    if (token.attribute.keyword != _keyword) \
-    syntaxError()
-
-/**
- * @brief Calls function in argument. If function doesn't return 0, returns that value.
- * 
- */
-#define getRule(_rule)          \
-    error = _rule();            \
-    if (error != ERROR_CODE_OK) \
-    return error
-
-//Global variables
-Token token;
-int tokenCode;
-bool tokenProcesed = true;
+int initParser(Parser *parser)
+{
+    parser->tokenProcesed = true;
+    parser->declaredMain = false;
+}
 
 /**
  * @brief Main function
@@ -91,8 +34,15 @@ bool tokenProcesed = true;
  */
 int parse()
 {
-    int error = package();
-    return error;
+    Parser parser;
+    initParser(&parser);
+    parser.returnCode = package(&parser);
+    if (parser.returnCode != ERROR_CODE_OK)
+        return parser.returnCode;
+
+    // missing main function
+    if (parser.declaredMain == false)
+        return ERROR_SEM;
 }
 
 /**
@@ -100,17 +50,22 @@ int parse()
  * 
  * @return Error code of rule 
  */
-int package()
+int package(Parser *parser)
 {
     getToken();
     while (isType(TOKEN_EOL))
         getToken();
-    tokenProcesed = false;
+    parser->tokenProcesed = false;
+
     // <package> -> PACKAGE ID EOL <prog>
     getKeyword(KW_PACKAGE);
     getType(TOKEN_IDENTIFIER);
+    // only identifier "main" can follow after keyword package
+    if (strCmpConstStr(parser->token.attribute.string, "main"))
+        return ERROR_SYN;
     getType(TOKEN_EOL);
-    return prog();
+    getRule(prog);
+    return ERROR_CODE_OK;
 }
 
 /**
@@ -118,14 +73,15 @@ int package()
  * 
  * @return Error code of rule 
  */
-int prog()
+int prog(Parser *parser)
 {
-    int error;
     getToken();
     // <prog> -> FUNC ID ( <params> ) <ret> { EOL <body> } EOL <prog>
     if (isKeyword(KW_FUNC))
     {
         getType(TOKEN_IDENTIFIER);
+        if (!strCmpConstStr(parser->token.attribute.string, "main"))
+            parser->declaredMain = true;
         getType(TOKEN_LBRACKET);
         getRule(params);
         getType(TOKEN_RBRACKET);
@@ -136,19 +92,16 @@ int prog()
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(prog);
-        return ERROR_CODE_OK;
     }
     //<prog> -> EOF
     else if (isType(TOKEN_EOF))
     {
-        return ERROR_CODE_OK;
     }
     else if (isType(TOKEN_EOL))
     {
         getRule(prog);
-        return ERROR_CODE_OK;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -156,24 +109,21 @@ int prog()
  * 
  * @return Error code of rule 
  */
-int params()
+int params(Parser *parser)
 {
-    int error;
     getToken();
     // <params> -> ID <type> <params_n>
     if (isType(TOKEN_IDENTIFIER))
     {
         getRule(type);
         getRule(params_n);
-        return ERROR_CODE_OK;
     }
     // <params> -> ε
     else if (isType(TOKEN_RBRACKET))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -181,12 +131,20 @@ int params()
  * 
  * @return Error code of rule 
  */
-int type()
+int type(Parser *parser)
 {
+    // TODO - semantic
     getToken();
-    if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
-        return ERROR_CODE_OK;
-    syntaxError();
+    if (isKeyword(KW_INT))
+    {
+    }
+    else if (isKeyword(KW_FLOAT64))
+    {
+    }
+    else if (isKeyword(KW_STRING))
+    {
+    }
+    returnRule();
 }
 
 /**
@@ -194,9 +152,8 @@ int type()
  * 
  * @return Error code of rule 
  */
-int params_n()
+int params_n(Parser *parser)
 {
-    int error;
     getToken();
     // <params_n> , ID <type> <params_n>
     if (isType(TOKEN_COMMA))
@@ -204,15 +161,13 @@ int params_n()
         getType(TOKEN_IDENTIFIER);
         getRule(type);
         getRule(params_n);
-        return ERROR_CODE_OK;
     }
     // <params_n> -> ε
     else if (isType(TOKEN_RBRACKET))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -220,24 +175,21 @@ int params_n()
  * 
  * @return Error code of rule 
  */
-int ret()
+int ret(Parser *parser)
 {
-    int error;
     getToken();
     // <ret> -> ( <ret_params> )
     if (isType(TOKEN_LBRACKET))
     {
         getRule(ret_params);
         getType(TOKEN_RBRACKET);
-        return ERROR_CODE_OK;
     }
     // <ret> -> ε
     else if (isType(TOKEN_LCURLYBRACKET))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -245,23 +197,20 @@ int ret()
  * 
  * @return Error code of rule 
  */
-int ret_params()
+int ret_params(Parser *parser)
 {
-    int error;
     getToken();
     //<ret_params> -> <type> <ret_params_n>
     if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
     {
         getRule(ret_params_n);
-        return ERROR_CODE_OK;
     }
     //<ret_params>->ε
     else if (isType(TOKEN_RBRACKET))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -269,24 +218,21 @@ int ret_params()
  * 
  * @return Error code of rule 
  */
-int ret_params_n()
+int ret_params_n(Parser *parser)
 {
-    int error;
     getToken();
     //<ret_params_n>->, <type> <ret_params_n>
     if (isType(TOKEN_COMMA))
     {
         getRule(type);
         getRule(ret_params_n);
-        return ERROR_CODE_OK;
     }
     //<ret_params_n>->ε
     else if (isType(TOKEN_RBRACKET))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -294,18 +240,16 @@ int ret_params_n()
  * 
  * @return Error code of rule 
  */
-int body()
+int body(Parser *parser)
 {
-    int error;
     getToken();
     // <body> -> FOR <definition> ; <expression> ; <assign> { EOL <body> } EOL <body>
     if (isKeyword(KW_FOR))
     {
         getRule(definition);
         getType(TOKEN_SEMICOLON);
-        // getRule(expression);
         getRule(expression);
-        tokenProcesed = false;
+        parser->tokenProcesed = false;
         getType(TOKEN_SEMICOLON);
         getRule(assign);
         getType(TOKEN_LCURLYBRACKET);
@@ -314,13 +258,12 @@ int body()
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
-        return ERROR_CODE_OK;
     }
     // <body> -> IF <expression> { EOL <body> } ELSE { EOL <body> } EOL <body>
     else if (isKeyword(KW_IF))
     {
         getRule(expression);
-        tokenProcesed = false;
+        parser->tokenProcesed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -332,15 +275,13 @@ int body()
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
-        return ERROR_CODE_OK;
     }
-    // <body> -> RETURN <return> EOL <body>
+    // <body> -> RETURN <list> EOL <body>
     else if (isKeyword(KW_RETURN))
     {
-        getRule(arg);
+        getRule(list);
         getType(TOKEN_EOL);
         getRule(body);
-        return ERROR_CODE_OK;
     }
     // <body> -> ID <body_n> EOL <body>
     else if (isType(TOKEN_IDENTIFIER))
@@ -348,20 +289,18 @@ int body()
         getRule(body_n);
         getType(TOKEN_EOL);
         getRule(body);
-        return ERROR_CODE_OK;
     }
-    // <body> -> ε
+    // skip empty lines
     else if (isType(TOKEN_EOL))
     {
         getRule(body);
-        return ERROR_CODE_OK;
     }
+    // <body> -> ε
     else if (isType(TOKEN_RCURLYBRACKET))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -369,34 +308,29 @@ int body()
  * 
  * @return Error code of rule 
  */
-int body_n()
+int body_n(Parser *parser)
 {
-    int error;
     getToken();
-    //<body_n>-> := <value>
+    //<body_n>-> := <expression>
     if (isType(TOKEN_VAR_DEF))
     {
-        getRule(value);
-        return ERROR_CODE_OK;
+        getRule(expression);
     }
-    //<body_n>-> <id_n> = <value> <value_n>
+    //<body_n>-> <id_n> = <value
     else if (isType(TOKEN_COMMA) || isType(TOKEN_ASSIGN))
     {
-        tokenProcesed = false;
+        parser->tokenProcesed = false;
         getRule(id_n);
         getType(TOKEN_ASSIGN);
         getRule(value);
-        getRule(value_n);
-        return ERROR_CODE_OK;
     }
     //<body_n>-> ( <arg> )
     else if (isType(TOKEN_LBRACKET))
     {
         getRule(arg);
         getType(TOKEN_RBRACKET);
-        return ERROR_CODE_OK;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -404,24 +338,21 @@ int body_n()
  * 
  * @return Error code of rule 
  */
-int id_n()
+int id_n(Parser *parser)
 {
-    int error;
     getToken();
     //  <id_n> -> , ID <id_n>
     if (isType(TOKEN_COMMA))
     {
         getType(TOKEN_IDENTIFIER);
         getRule(id_n);
-        return ERROR_CODE_OK;
     }
     //  <id_n> -> ε
     else if (isType(TOKEN_ASSIGN))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -429,24 +360,21 @@ int id_n()
  * 
  * @return Error code of rule 
  */
-int definition()
+int definition(Parser *parser)
 {
-    int error;
     getToken();
-    // <definition> -> ID := <value>
+    // <definition> -> ID := <expression>
     if (isType(TOKEN_IDENTIFIER))
     {
         getType(TOKEN_VAR_DEF);
-        getRule(value);
-        return ERROR_CODE_OK;
+        getRule(expression);
     }
     // <definition> -> ε
     else if (isType(TOKEN_SEMICOLON))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -454,26 +382,22 @@ int definition()
  * 
  * @return Error code of rule 
  */
-int assign()
+int assign(Parser *parser)
 {
-    int error;
     getToken();
-    // <assign> -> ID <id_n> = <value> <value_n>
+    // <assign> -> ID <id_n> = <value>
     if (isType(TOKEN_IDENTIFIER))
     {
         getRule(id_n);
         getType(TOKEN_ASSIGN);
         getRule(value);
-        getRule(value_n);
-        return ERROR_CODE_OK;
     }
     // <assign> -> ε
     else if (isType(TOKEN_LCURLYBRACKET))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -481,63 +405,34 @@ int assign()
  * 
  * @return Error code of rule 
  */
-int value()
+int value(Parser *parser)
 {
-    int error;
+    // TODO
     getRule(expression);
-    tokenProcesed = false;
-    // getToken();
-    // // <value> -> ID <func>
-    // if (isType(TOKEN_IDENTIFIER))
-    // {
-    //     getRule(func);
-    //     return ERROR_CODE_OK;
-    // }
-    // // <value> -> VALUE_INT
-    // else if (isType(TOKEN_INT))
-    // {
-    //     return ERROR_CODE_OK;
-    // }
-    // // <value> -> VALUE_FLOAT64
-    // else if (isType(TOKEN_FLOAT))
-    // {
-    //     return ERROR_CODE_OK;
-    // }
-    // // <value> -> VALUE_STRING
-    // else if (isType(TOKEN_STRING))
-    // {
-    //     return ERROR_CODE_OK;
-    // }
-    // // <value> -> <expression>
-    // // else if ()
-    // // {
-    // // }
-    // syntaxError();
+    getRule(expression_n);
+    return ERROR_CODE_OK;
 }
 
 /**
- * @brief <value_n> rule
+ * @brief <expression_n> rule
  * 
  * @return Error code of rule 
  */
-int value_n()
+int expression_n(Parser *parser)
 {
-    int error;
     getToken();
-    // <value_n> -> , <value> <value_n>
+    // <expression_n> -> , <expression> <expression_n>
     if (isType(TOKEN_COMMA))
     {
-        getRule(value);
-        getRule(value_n);
-        return ERROR_CODE_OK;
+        getRule(expression);
+        getRule(expression_n);
     }
-    // <value_n> -> ε
-    else if (isType(TOKEN_RBRACKET) || isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
+    // <expression_n> -> ε
+    else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -545,26 +440,21 @@ int value_n()
  * 
  * @return Error code of rule 
  */
-int func()
+int func(Parser *parser)
 {
-    int error;
     getToken();
     // <func> -> ( <arg> )
     if (isType(TOKEN_LBRACKET))
     {
         getRule(arg);
         getType(TOKEN_RBRACKET);
-        return ERROR_CODE_OK;
     }
     // <func> -> ε
-    else if (isType(TOKEN_RBRACKET) || isType(TOKEN_LCURLYBRACKET) ||
-             isType(TOKEN_RCURLYBRACKET) || isType(TOKEN_COMMA) ||
-             isType(TOKEN_SEMICOLON) || isType(TOKEN_EOL))
+    else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
     {
-        tokenProcesed = false;
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
     }
-    syntaxError();
+    returnRule();
 }
 
 /**
@@ -572,23 +462,93 @@ int func()
  * 
  * @return Error code of rule 
  */
-int arg()
+int arg(Parser *parser)
 {
-    int error;
     getToken();
-    // <arg> -> <value> <value_n>
-    if (isType(TOKEN_IDENTIFIER) || isType(TOKEN_INT) || isType(TOKEN_FLOAT) || isType(TOKEN_STRING) || isType(TOKEN_EOL))
+    // <arg> -> <term> <term_n>
+    if (isType(TOKEN_IDENTIFIER) || isType(TOKEN_INT) || isType(TOKEN_FLOAT) || isType(TOKEN_STRING))
     {
-        tokenProcesed = false;
-        getRule(value);
-        getRule(value_n);
-        return ERROR_CODE_OK;
+        parser->tokenProcesed = false;
+        getRule(term);
+        getRule(term_n);
     }
     // <arg> -> ε
-    else if (isType(TOKEN_RBRACKET) || isType(TOKEN_EOL))
+    else if (isType(TOKEN_RBRACKET))
     {
-        tokenProcesed = false;
+        parser->tokenProcesed = false;
+    }
+    returnRule();
+}
+
+/**
+ * @brief <term> rule
+ * 
+ * @return Error code of rule 
+ */
+int term(Parser *parser)
+{
+    // TODO - semantic
+    getToken();
+    // <term> -> ID
+    if (isType(TOKEN_IDENTIFIER))
+    {
+    }
+    // <term> -> VALUE_INT
+    else if (isType(TOKEN_INT))
+    {
+    }
+    // <term> -> VALUE_FLOAT64
+    else if (isType(TOKEN_FLOAT))
+    {
+    }
+    // <term> -> VALUE_STRING
+    else if (isType(TOKEN_STRING))
+    {
+    }
+    returnRule();
+}
+
+/**
+ * @brief <term_n> rule
+ * 
+ * @return Error code of rule 
+ */
+int term_n(Parser *parser)
+{
+    getToken();
+    // <term_n> -> , <term> <term_n>
+    if (isType(TOKEN_COMMA))
+    {
+        getRule(term);
+        getRule(term_n);
+    }
+    // <term_n> -> ε
+    else if (isType(TOKEN_RBRACKET))
+    {
+        parser->tokenProcesed = false;
+    }
+    returnRule();
+}
+
+/**
+ * @brief <list> rule
+ * 
+ * @return Error code of rule 
+ */
+int list(Parser *parser)
+{
+    getToken();
+    //<list> -> ε
+    if (isType(TOKEN_EOL))
+    {
+        parser->tokenProcesed = false;
         return ERROR_CODE_OK;
     }
-    syntaxError();
+    //<list> -> <value>
+    else
+    {
+        parser->tokenProcesed = false;
+        getRule(value);
+        return ERROR_CODE_OK;
+    }
 }
