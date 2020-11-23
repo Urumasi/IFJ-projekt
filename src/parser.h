@@ -22,6 +22,9 @@ typedef struct parser
     bool tokenProcessed;
     bool declaredMain;
     bool funcInExpr;
+
+    int countLeft;
+    int countRight;
 } Parser;
 
 int initParser(Parser *parser);
@@ -38,15 +41,17 @@ int type(Parser *parser);
 int body(Parser *parser);
 int body_n(Parser *parser);
 int id_n(Parser *parser);
-int definition(Parser *parser);
-int assign(Parser *parser);
+int for_definition(Parser *parser);
+int for_assign(Parser *parser);
 int value(Parser *parser);
 int expression_n(Parser *parser);
+int definition(Parser *parser);
+int assign(Parser *parser);
 int func(Parser *parser);
 int arg(Parser *parser);
 int term(Parser *parser);
 int term_n(Parser *parser);
-int list(Parser *parser);
+int ret_values(Parser *parser);
 
 /**
  * @brief Gets new token if token isn't processed. Returns parser->returnCode code if anything fails.

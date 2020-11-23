@@ -26,6 +26,8 @@ int initParser(Parser *parser)
     parser->tokenProcessed = true;
     parser->declaredMain = false;
     parser->funcInExpr = false;
+    parser->countLeft = 1;
+    parser->countRight = 1;
 }
 
 /**
@@ -244,15 +246,15 @@ int ret_params_n(Parser *parser)
 int body(Parser *parser)
 {
     getToken();
-    // <body> -> FOR <definition> ; <expression> ; <assign> { EOL <body> } EOL <body>
+    // <body> -> FOR <for_definition> ; <expression> ; <for_assign> { EOL <body> } EOL <body>
     if (isKeyword(KW_FOR))
     {
-        getRule(definition);
+        getRule(for_definition);
         getType(TOKEN_SEMICOLON);
         getRule(expression);
         parser->tokenProcessed = false;
         getType(TOKEN_SEMICOLON);
-        getRule(assign);
+        getRule(for_assign);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -277,10 +279,10 @@ int body(Parser *parser)
         getType(TOKEN_EOL);
         getRule(body);
     }
-    // <body> -> RETURN <list> EOL <body>
+    // <body> -> RETURN <ret_values> EOL <body>
     else if (isKeyword(KW_RETURN))
     {
-        getRule(list);
+        getRule(ret_values);
         getType(TOKEN_EOL);
         getRule(body);
     }
@@ -312,18 +314,17 @@ int body(Parser *parser)
 int body_n(Parser *parser)
 {
     getToken();
-    //<body_n>-> := <expression>
+    //<body_n> -> <definition>
     if (isType(TOKEN_VAR_DEF))
     {
-        getRule(expression);
+        parser->tokenProcessed = false;
+        getRule(definition);
     }
-    //<body_n>-> <id_n> = <value>
+    //<body_n> -> <assign>
     else if (isType(TOKEN_COMMA) || isType(TOKEN_ASSIGN))
     {
         parser->tokenProcessed = false;
-        getRule(id_n);
-        getType(TOKEN_ASSIGN);
-        getRule(value);
+        getRule(assign);
     }
     //<body_n>-> ( <arg> )
     else if (isType(TOKEN_LBRACKET))
@@ -345,6 +346,7 @@ int id_n(Parser *parser)
     //  <id_n> -> , ID <id_n>
     if (isType(TOKEN_COMMA))
     {
+        parser->countLeft++;
         getType(TOKEN_IDENTIFIER);
         getRule(id_n);
     }
@@ -357,20 +359,19 @@ int id_n(Parser *parser)
 }
 
 /**
- * @brief <definition> rule
+ * @brief <for_definition> rule
  * 
  * @return Error code of rule 
  */
-int definition(Parser *parser)
+int for_definition(Parser *parser)
 {
     getToken();
-    // <definition> -> ID := <expression>
+    // <for_definition> -> ID <definition>
     if (isType(TOKEN_IDENTIFIER))
     {
-        getType(TOKEN_VAR_DEF);
-        getRule(expression);
+        getRule(definition);
     }
-    // <definition> -> ε
+    // <for_definition> -> ε
     else if (isType(TOKEN_SEMICOLON))
     {
         parser->tokenProcessed = false;
@@ -379,21 +380,19 @@ int definition(Parser *parser)
 }
 
 /**
- * @brief <assign> rule
+ * @brief <for_assign> rule
  * 
  * @return Error code of rule 
  */
-int assign(Parser *parser)
+int for_assign(Parser *parser)
 {
     getToken();
-    // <assign> -> ID <id_n> = <value>
+    // <for_assign> -> ID <assign>
     if (isType(TOKEN_IDENTIFIER))
     {
-        getRule(id_n);
-        getType(TOKEN_ASSIGN);
-        getRule(value);
+        getRule(assign);
     }
-    // <assign> -> ε
+    // <for_assign> -> ε
     else if (isType(TOKEN_LCURLYBRACKET))
     {
         parser->tokenProcessed = false;
@@ -408,13 +407,14 @@ int assign(Parser *parser)
  */
 int value(Parser *parser)
 {
-    // <value>->ID<func>
+    parser->countRight = 1;
+    // <value> -> ID <func>
     getRule(expression);
     if (parser->funcInExpr)
     {
         getRule(func);
     }
-    // <value>-><expression><expression_n>
+    // <value> -> <expression> <expression_n>
     else
     {
         getRule(expression_n);
@@ -434,6 +434,7 @@ int expression_n(Parser *parser)
     // <expression_n> -> , <expression> <expression_n>
     if (isType(TOKEN_COMMA))
     {
+        parser->countRight++;
         getRule(expression);
         getRule(expression_n);
     }
@@ -443,6 +444,33 @@ int expression_n(Parser *parser)
         parser->tokenProcessed = false;
     }
     returnRule();
+}
+
+/**
+ * @brief <definition> rule
+ * 
+ * @return Error code of rule 
+ */
+int definition(Parser *parser)
+{
+    // <definition> -> := <expression>
+    getType(TOKEN_VAR_DEF);
+    getRule(expression);
+    return ERROR_CODE_OK;
+}
+
+/**
+ * @brief <assign> rule
+ * 
+ * @return Error code of rule 
+ */
+int assign(Parser *parser)
+{
+    // <assign> -> <id_n> = <value>
+    getRule(id_n);
+    getType(TOKEN_ASSIGN);
+    getRule(value);
+    return ERROR_CODE_OK;
 }
 
 /**
@@ -541,20 +569,21 @@ int term_n(Parser *parser)
 }
 
 /**
- * @brief <list> rule
+ * @brief <ret_values> rule
  * 
  * @return Error code of rule 
  */
-int list(Parser *parser)
+int ret_values(Parser *parser)
 {
     getToken();
-    //<list> -> ε
+    //<ret_values> -> ε
     if (isType(TOKEN_EOL))
     {
+        parser->countRight = 0;
         parser->tokenProcessed = false;
         return ERROR_CODE_OK;
     }
-    //<list> -> <value>
+    //<ret_values> -> <value>
     else
     {
         parser->tokenProcessed = false;
