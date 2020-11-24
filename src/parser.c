@@ -18,6 +18,7 @@
 #include "parser.h"
 #include "expression.h"
 #include "error.h"
+#include "symtable.h"
 
 Parser parser;
 

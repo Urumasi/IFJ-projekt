@@ -12,13 +12,20 @@
  * @author Petr Salaba <xsalab00@stud.fit.vutbr.cz>
  */
 
-#include "htab/htab.h"
+#include "symtable.h"
 #include "scanner.h"
 #include "error.h"
 #include "parser.h"
+#include <stdlib.h>
 
 int main(int argc, char *argv[])
 {
+    symtable *sym;
+    sym = symtable_init(101);
+    symtable_free(sym);
+    symtable_value value;
+    value = malloc(sizeof(struct symtable_value));
+    symtable_iterator it;
     FILE *fp;
     if (argc > 1)
     {
