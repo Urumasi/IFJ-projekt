@@ -7,6 +7,10 @@
 #include <stdint.h>
 #include "symtable.h"
 
+extern bool htab_iterator_valid(htab_iterator_t it) {
+	return it.ptr != NULL;
+}
+
 extern htab_iterator_t htab_begin(const htab_t *t) {
     if(t->size == 0){
         return htab_iterator_init(t, NULL, 0);

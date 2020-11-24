@@ -48,11 +48,9 @@ htab_iterator_t htab_end(const htab_t *t);
 
 htab_iterator_t htab_iterator_next(htab_iterator_t it);
 
-inline bool htab_iterator_valid(htab_iterator_t it) { 
-	return it.ptr != NULL;
-}
+bool htab_iterator_valid(htab_iterator_t it);
 
-inline bool htab_iterator_equal(htab_iterator_t it1, htab_iterator_t it2) {
+inline bool htba_iterator_equal(htab_iterator_t it1, htab_iterator_t it2) {
 	return it1.ptr == it2.ptr && it1.t == it2.t;
 }
 
