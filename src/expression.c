@@ -53,6 +53,12 @@ const char prec_table[TABLE_SIZE][TABLE_SIZE] = {
 	{'<','<','<','-','<','-'},	// $
 };
 
+int cleanup(Parser *parser, int error) {
+	stackDispose(&stack);
+	parser->tokenProcessed = false;
+	return error;
+}
+
 int getIndexFromSymbol(Prec_symbol symbol) {
 	if (symbol == PLUS || symbol == MINUS) {
 		return I_PLUS_MINUS;
@@ -119,37 +125,13 @@ int checkRule(int count){
 			if (stack.top->next->data == PLUS || stack.top->next->data == MINUS || stack.top->next->data == MULTIPLY ||stack.top->next->data == DIVIDE) {
 				return ERROR_CODE_OK;
 			}
-		}else if (stack.top->data == LEFT_BRACKET && stack.top->next->next->data == RIGHT_BRACKET){
+		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){
 			if (stack.top->next->data == NON_TERM){
 				return ERROR_CODE_OK;
 			}
 		}
 	}
 	return ERROR_SYN;
-}
-
-int reduce() {
-	tItemPtr *tmp = stackTop(&stack);;
-	int count = 0;
-	while (tmp != NULL) {
-		if (tmp->data != HANDLE){
-			count++;
-		}else break;
-		tmp = tmp->next;
-	}
-	
-	if (checkRule(count)){
-		return ERROR_SYN;
-	}
-
-	//printf("------------ %d ----------\n", count);
-	for (int i = 0; i < count+1; i++) {
-		stackPop(&stack);
-	}
-
-	stackPush(&stack, NON_TERM);
-
-	return ERROR_CODE_OK;
 }
 
 void printStack(){
@@ -163,13 +145,35 @@ void printStack(){
 	printf("--------------------------\n");
 }
 
+int reduce() {
+	tItemPtr *tmp = stackTop(&stack);;
+	int count = 0;
+	while (tmp != NULL) {
+		if (tmp->data != HANDLE){
+			count++;
+		}else break;
+		tmp = tmp->next;
+	}
+		
+	if (checkRule(count)){
+		return ERROR_SYN;
+	}
+	
+	for (int i = 0; i < count+1; i++) {
+		stackPop(&stack);
+	}
+
+	stackPush(&stack, NON_TERM);
+
+	return ERROR_CODE_OK;
+}
+
 int expression(Parser  *parser) {
 	stackInit(&stack);
+	char index;
 	int ok = 0;
 	if (stackPush(&stack, DOLAR)) {
-		stackDispose(&stack);
-		parser->tokenProcessed = false;
-		return ERROR_INTERNAL;
+		return cleanup(parser, ERROR_INTERNAL);
 	}
 		
 	tItemPtr *top_terminal;
@@ -179,17 +183,17 @@ int expression(Parser  *parser) {
 	do {
 		symbol = getSymbolFromToken(parser);
 		top_terminal = stackTop(&stack);
-	
 		if (top_terminal->data == NON_TERM && top_terminal->next->data != DOLAR) {
 			top_terminal = top_terminal->next;
 		}
-
-		switch (prec_table[getIndexFromSymbol(top_terminal->data)][getIndexFromToken(parser)]) {
+		index = prec_table[getIndexFromSymbol(top_terminal->data)][getIndexFromToken(parser)];
+		if (index == '-'){
+			break;
+		}
+		switch (index) {
 			case '=':
-				if (stackPush(&stack, DOLAR)) {
-					stackDispose(&stack);
-					parser->tokenProcessed = false;
-					return ERROR_INTERNAL;
+				if (stackPush(&stack, RIGHT_BRACKET)) {
+					return cleanup(parser,ERROR_INTERNAL);
 				}
 				getToken();
 				break;
@@ -200,9 +204,7 @@ int expression(Parser  *parser) {
 				break;
 			case '>':
 				if(reduce()){
-					stackDispose(&stack);
-					parser->tokenProcessed = false;
-    				return ERROR_SYN;
+    				return cleanup(parser, ERROR_SYN);
 				}
 				break;
 			default:
@@ -215,9 +217,6 @@ int expression(Parser  *parser) {
 		//printStack();
     }while(!ok);
     
-	
-	parser->tokenProcessed = false;
-
-	stackDispose(&stack);
-    return ERROR_CODE_OK;
+	printStack();
+    return cleanup(parser, ERROR_CODE_OK);
 }

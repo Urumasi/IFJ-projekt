@@ -43,7 +43,7 @@ typedef enum {
     I_RIGHT_BRACKET,
     
     I_ID,
-
+ 
     I_DOLAR
 
 }Prec_index;
