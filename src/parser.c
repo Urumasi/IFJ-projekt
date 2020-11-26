@@ -29,6 +29,15 @@ int initParser(Parser *parser)
     parser->funcInExpr = false;
     parser->countLeft = 1;
     parser->countRight = 1;
+    symtableInit(&parser->sGlobal);
+    symStackInit(&parser->sLocal);
+    return 0;
+}
+
+void deleteParser(Parser *parser)
+{
+    symtableClearAll(&parser->sGlobal);
+    symStackDispose(&parser->sLocal);
 }
 
 /**
@@ -86,6 +95,30 @@ int prog(Parser *parser)
         getType(TOKEN_IDENTIFIER);
         if (!strCmpConstStr(parser->token.attribute.string, "main"))
             parser->declaredMain = true;
+
+        tSymtableData data;
+        data.type = 0;
+        printf("%d\n", data.type);
+        symStackPush(&parser->sLocal);
+        symtableInsert(&parser->sLocal.top->symtable, parser->token.attribute.string, (tSymtableData){.type = 1});
+        data = symtableRead(&parser->sLocal.top->symtable, parser->token.attribute.string);
+        printf("%d\n", data.type);
+        symStackPush(&parser->sLocal);
+        symtableInsert(&parser->sLocal.top->symtable, parser->token.attribute.string, (tSymtableData){.type = 2});
+        data = symtableRead(&parser->sLocal.top->symtable, parser->token.attribute.string);
+        printf("%d\n", data.type);
+        symStackPush(&parser->sLocal);
+        symtableInsert(&parser->sLocal.top->symtable, parser->token.attribute.string, (tSymtableData){.type = 3});
+        data = symtableRead(&parser->sLocal.top->symtable, parser->token.attribute.string);
+        printf("%d\n", data.type);
+        symStackPop(&parser->sLocal);
+        data = symtableRead(&parser->sLocal.top->symtable, parser->token.attribute.string);
+        printf("%d\n", data.type);
+        symStackPop(&parser->sLocal);
+        data = symtableRead(&parser->sLocal.top->symtable, parser->token.attribute.string);
+        printf("%d\n", data.type);
+        printf("-----------\n");
+
         getType(TOKEN_LBRACKET);
         getRule(params);
         getType(TOKEN_RBRACKET);

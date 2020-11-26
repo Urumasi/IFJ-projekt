@@ -10,11 +10,11 @@
 
 typedef enum
 {
-	INT,
-	FLOAT64,
-	STRING,
-	BOOL,
-	UNDERSCORE
+	tINT,
+	tFLOAT64,
+	tSTRING,
+	tBOOL,
+	tUNDERSCORE
 } DataType;
 
 typedef struct tSymtableData
