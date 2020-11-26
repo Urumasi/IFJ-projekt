@@ -190,6 +190,8 @@ int expression(Parser  *parser) {
 	stackInit(&stack);
 	char index;
 	int ok = 0;
+	int tokenCount = 0;
+	bool idFirst = false;
 	if (stackPush(&stack, DOLAR)) {
 		return cleanup(parser, ERROR_INTERNAL);
 	}
@@ -199,6 +201,14 @@ int expression(Parser  *parser) {
 	getToken(); 
 
 	while(!ok) {
+		tokenCount++;
+		if (tokenCount == 1 && isType(TOKEN_IDENTIFIER)) {
+			idFirst = true;
+		}else if (tokenCount == 2 && idFirst && isType(TOKEN_LBRACKET)) {
+			parser->funcInExpr = true;
+			return cleanup(parser, ERROR_CODE_OK);
+		}
+
 		symbol = getSymbolFromToken(parser);
 		top_terminal = stackTop(&stack);
 		if (top_terminal->data == NON_TERM && top_terminal->next->data != DOLAR) {
@@ -228,8 +238,12 @@ int expression(Parser  *parser) {
 					break;
 				}else return cleanup(parser, ERROR_SYN);
 		}
-		//printStack();
+		printStack();
     }
+
+	if (!(stack.top->data == NON_TERM && stack.top->next->data == DOLAR)) {
+		return cleanup(parser, ERROR_SYN);
+	}
     
 	//printStack();
     return cleanup(parser, ERROR_CODE_OK);
