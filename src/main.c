@@ -12,7 +12,6 @@
  * @author Petr Salaba <xsalab00@stud.fit.vutbr.cz>
  */
 
-#include "htab/htab.h"
 #include "scanner.h"
 #include "error.h"
 #include "parser.h"

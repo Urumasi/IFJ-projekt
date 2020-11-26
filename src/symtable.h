@@ -4,65 +4,70 @@
 #include <string.h>
 #include <stdbool.h>
 
-struct htab;
-typedef struct htab htab_t;
+struct symtable;
+typedef struct symtable symtable;
 
-typedef const char *htab_key_t;
-typedef void *htab_value_t;
+typedef const char *symtable_key;
+typedef struct symtable_value
+{
+	int test;
+} * symtable_value;
 
-struct htab_item;
+struct symtable_item;
 
-typedef struct htab_iterator {
-	struct htab_item *ptr;
-	const htab_t *t;
+typedef struct symtable_iterator
+{
+	struct symtable_item *ptr;
+	const symtable *t;
 	size_t idx;
-}htab_iterator_t;
+} symtable_iterator;
 
-struct htab_item {
-	htab_key_t key;
-	htab_value_t data;
-	struct htab_item *next;
+struct symtable_item
+{
+	symtable_key key;
+	symtable_value data;
+	struct symtable_item *next;
 };
 
-struct htab {
+struct symtable
+{
 	size_t size;
 	size_t arr_size;
-	struct htab_item *buckets[];
+	struct symtable_item *buckets[];
 };
 
-size_t htab_hash_fun(htab_key_t str);
+size_t symtable_hash_fun(symtable_key str);
 
-htab_t *htab_init(size_t n);
-size_t htab_size(const htab_t *t);
-size_t htab_bucket_count(const htab_t *t);
+symtable *symtable_init(size_t n);
+size_t symtable_size(const symtable *t);
+size_t symtable_bucket_count(const symtable *t);
 
-htab_iterator_t htab_iterator_init(const htab_t *t, struct htab_item *item, size_t index);
+symtable_iterator symtable_iterator_init(const symtable *t, struct symtable_item *item, size_t index);
 
-htab_iterator_t htab_find(htab_t *t, htab_key_t key);
-htab_iterator_t htab_lookup_add(htab_t *t, htab_key_t key);
+symtable_iterator symtable_find(symtable *t, symtable_key key);
+symtable_iterator symtable_lookup_add(symtable *t, symtable_key key);
 
-void htab_erase(htab_t *t, htab_iterator_t it);
+void symtable_erase(symtable *t, symtable_iterator it);
 
-htab_iterator_t htab_begin(const htab_t *t);
-htab_iterator_t htab_end(const htab_t *t);
+symtable_iterator symtable_begin(const symtable *t);
+symtable_iterator symtable_end(const symtable *t);
 
-htab_iterator_t htab_iterator_next(htab_iterator_t it);
+symtable_iterator symtable_iterator_next(symtable_iterator it);
 
-inline bool htab_iterator_valid(htab_iterator_t it) { 
-	return it.ptr != NULL;
-}
+bool symtable_iterator_valid(symtable_iterator it);
 
-inline bool htab_iterator_equal(htab_iterator_t it1, htab_iterator_t it2) {
+inline bool symtable_iterator_equal(symtable_iterator it1, symtable_iterator it2)
+{
 	return it1.ptr == it2.ptr && it1.t == it2.t;
 }
 
-htab_key_t htab_iterator_get_key(htab_iterator_t it);
+symtable_key symtable_iterator_get_key(symtable_iterator it);
 
-htab_value_t htab_iterator_get_value(htab_iterator_t it);
+symtable_value symtable_iterator_get_value(symtable_iterator it);
 
-htab_value_t htab_iterator_set_value(htab_iterator_t it, htab_value_t val);
+symtable_value symtable_iterator_set_value(symtable_iterator it, symtable_value val);
 
-void htab_clear(htab_t *t);
-void htab_free(htab_t *t);
+void symtable_clear(symtable *t);
+void symtable_free(symtable *t);
 
 #endif // __SYMTAB_H__

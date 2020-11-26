@@ -24,14 +24,14 @@ typedef struct tItem {
 
 typedef struct {
 	tItemPtr *top;
-	unsigned size;
 } tStack;
 
 void stackInit(tStack* stack);
 void stackDispose(tStack* stack);
-unsigned stackSize(tStack* stack);
+tItemPtr* stackTop(tStack* stack);
 bool stackEmpty(tStack* stack);
-bool stackPush(tStack* stack, int value);
-bool stackPop(tStack* stack, int *value);
+int stackPush(tStack* stack, int value);
+int stackInsertAfterTerm(tStack* stack, int value);
+int stackPop(tStack* stack);
 
 #endif //__STACK_H__

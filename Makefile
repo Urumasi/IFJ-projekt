@@ -3,10 +3,9 @@ CFLAGS = -Wall -Wextra -pedantic -g
 
 SRC_DIR = src
 OBJ_DIR = obj
-LIB_DIR = lib
 
-TARGET = ifj20c
-MODULES = main scanner parser str
+TARGET = ifj20
+MODULES = main scanner parser expression str stack symtable
 SOURCES = $(MODULES:%=$(SRC_DIR)/%.c)
 OBJS = $(MODULES:%=$(OBJ_DIR)/%.o)
 
@@ -14,21 +13,14 @@ OBJS = $(MODULES:%=$(OBJ_DIR)/%.o)
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS) $(LIB_DIR)/libhtab.a
+$(TARGET): $(OBJS) $(SRC_DIR)/symtable.h
 	$(CC) $(CFLAGS) $^ -o $@
 
-clean: $(SRC_DIR)/htab/Makefile
+clean: $(SRC_DIR)
 	$(RM) -r $(OBJ_DIR)
-	$(RM) -r $(LIB_DIR)
 	$(RM) $(TARGET)
-	cd $(SRC_DIR)/htab && $(MAKE) clean
+	cd $(SRC_DIR) && $(MAKE) clean
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(@D)
 	$(CC) -c $< -o $@
-
-$(LIB_DIR)/libhtab.a: $(SRC_DIR)/htab/Makefile
-	@mkdir -p $(@D)
-	cd $(SRC_DIR)/htab && $(MAKE)
-	cp $(SRC_DIR)/htab/libhtab.a $(LIB_DIR)
-

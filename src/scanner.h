@@ -19,10 +19,11 @@
 
 #include "str.h"
 
- /**
+/**
   * @enum Reserved keywords.
   */
-typedef enum {
+typedef enum
+{
     KW_ELSE,
     KW_FLOAT64,
     KW_FOR,
@@ -37,9 +38,10 @@ typedef enum {
 /**
  * @union Token attribute.
  */
-typedef union {
+typedef union
+{
     Keyword keyword;
-    string* string;
+    string *string;
     int integer;
     double decimal;
 } Token_attribute;
@@ -47,7 +49,8 @@ typedef union {
 /**
  * @enum Token type.
  */
-typedef enum {
+typedef enum
+{
     TOKEN_EQ,
     TOKEN_NEQ,
     TOKEN_LEQ,
@@ -82,13 +85,14 @@ typedef enum {
 /**
  * @struct Token.
  */
-typedef struct {
+typedef struct
+{
     Token_type type;
     Token_attribute attribute;
 } Token;
 
-void setSourceFile(FILE* f);
-void setString(string* s);
-int getNextToken(Token* token);
+void setSourceFile(FILE *f);
+void setString(string *s);
+int getNextToken(Token *token);
 
 #endif //__SCANNER_H__

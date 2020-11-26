@@ -19,30 +19,30 @@
 #include "scanner.h"
 #include "error.h"
 
-#define SCANNER_STATE_START 1 // Starting state.
-#define SCANNER_STATE_EOL 2 // End of line.
-#define SCANNER_STATE_KEYWORD_OR_IDENTIFIER 3 // Starts with underscore or alpha, later compared to keywords and executed as keyword or identifier.
-#define SCANNER_STATE_NUMBER 4 // Starts processing number.
-#define SCANNER_STATE_DECIMAL_POINT 5 // If decimal point was detected, token type is float.
-#define SCANNER_STATE_FLOAT 6 // Processing float number.
-#define SCANNER_STATE_EXPONENT 7 // If 'e' or 'E' was detected, token type is float.
-#define SCANNER_STATE_EXPONENT_SIGNED 8 // Detected wheter there is '+' or '-' after exponent.
-#define SCANNER_STATE_FINAL_NUMBER 9 // The final number with exponent.
-#define SCANNER_STATE_STRING 10 // Starts processing string.
-#define SCANNER_STATE_ESCAPE 11 // If '/' was detected, scanner is executing escape sequence.
-#define SCANNER_STATE_LESS_THAN 12 // Executing wheter there is '=' after '<'.
-#define SCANNER_STATE_MORE_THAN 13 // Executing wheter there is '=' sfter '>'
-#define SCANNER_STATE_COMMENTARY 14 // Line commentary that is ignored.
-#define SCANNER_STATE_BLOCK_COMMENTARY_START 15 // Start of block commentary, reads until sequence '*/' is found. 
-#define SCANNER_STATE_BLOCK_COMMENTARY_EXIT 16 // Character '/' has been found, ignores everything in the block.
-#define SCANNER_STATE_ASSIGN 17 // Executing wheter there is only one '=' in the row.
-#define SCANNER_STATE_EQUAL 18 // Executing wheter there are two '=' in the row. 
-#define SCANNER_STATE_NOT_EQUAL 19 // Executing wheter there is '=' after '!'. 
-#define SCANNER_STATE_SLASH 20 // Executing wheter read character is division or commentary.
-#define SCANNER_STATE_VARIABLE_DEF 21 // Executing wheter there is '=' after ':'.
-#define SCANNER_STATE_CHARACTER 22 // Character a in sequence '/xab'.
-#define SCANNER_STATE_CHARACTER_SECOND 23 // Character b in sequence '/xab'.
-#define SCANNER_STATE_ZERO_CONTROL 24 // Controls leading zeros.
+#define SCANNER_STATE_START 1                   // Starting state.
+#define SCANNER_STATE_EOL 2                     // End of line.
+#define SCANNER_STATE_KEYWORD_OR_IDENTIFIER 3   // Starts with underscore or alpha, later compared to keywords and executed as keyword or identifier.
+#define SCANNER_STATE_NUMBER 4                  // Starts processing number.
+#define SCANNER_STATE_DECIMAL_POINT 5           // If decimal point was detected, token type is float.
+#define SCANNER_STATE_FLOAT 6                   // Processing float number.
+#define SCANNER_STATE_EXPONENT 7                // If 'e' or 'E' was detected, token type is float.
+#define SCANNER_STATE_EXPONENT_SIGNED 8         // Detected wheter there is '+' or '-' after exponent.
+#define SCANNER_STATE_FINAL_NUMBER 9            // The final number with exponent.
+#define SCANNER_STATE_STRING 10                 // Starts processing string.
+#define SCANNER_STATE_ESCAPE 11                 // If '/' was detected, scanner is executing escape sequence.
+#define SCANNER_STATE_LESS_THAN 12              // Executing wheter there is '=' after '<'.
+#define SCANNER_STATE_MORE_THAN 13              // Executing wheter there is '=' sfter '>'
+#define SCANNER_STATE_COMMENTARY 14             // Line commentary that is ignored.
+#define SCANNER_STATE_BLOCK_COMMENTARY_START 15 // Start of block commentary, reads until sequence '*/' is found.
+#define SCANNER_STATE_BLOCK_COMMENTARY_EXIT 16  // Character '/' has been found, ignores everything in the block.
+#define SCANNER_STATE_ASSIGN 17                 // Executing wheter there is only one '=' in the row.
+#define SCANNER_STATE_EQUAL 18                  // Executing wheter there are two '=' in the row.
+#define SCANNER_STATE_NOT_EQUAL 19              // Executing wheter there is '=' after '!'.
+#define SCANNER_STATE_SLASH 20                  // Executing wheter read character is division or commentary.
+#define SCANNER_STATE_VARIABLE_DEF 21           // Executing wheter there is '=' after ':'.
+#define SCANNER_STATE_CHARACTER 22              // Character a in sequence '/xab'.
+#define SCANNER_STATE_CHARACTER_SECOND 23       // Character b in sequence '/xab'.
+#define SCANNER_STATE_ZERO_CONTROL 24           // Controls leading zeros.
 
 FILE *sourceFile;
 string *setStr;
@@ -273,7 +273,7 @@ int getNextToken(Token *token)
             }
             else if (isalpha(c) || c == '_')
             {
-                if (strAddChar(str, (char)tolower(c)) == 1)
+                if (strAddChar(str, (char)c) == 1)
                 {
                     return freeResources(ERROR_INTERNAL, str);
                 }
@@ -371,7 +371,7 @@ int getNextToken(Token *token)
         case (SCANNER_STATE_KEYWORD_OR_IDENTIFIER):
             if (isalnum(c) || c == '_')
             {
-                if (strAddChar(str, (char)tolower(c)) == 1)
+                if (strAddChar(str, (char)c) == 1)
                 {
                     return freeResources(ERROR_INTERNAL, str);
                 }
@@ -518,7 +518,7 @@ int getNextToken(Token *token)
             break;
 
         case (SCANNER_STATE_STRING):
-            if (c <= '!')
+            if (c < ' ')
             {
                 return freeResources(ERROR_LEX, str);
             }
@@ -732,5 +732,5 @@ int getNextToken(Token *token)
             return freeResources(ERROR_CODE_OK, str);
 
         } //switch
-    } //while
+    }     //while
 } //funkcia

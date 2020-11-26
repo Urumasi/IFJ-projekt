@@ -15,24 +15,100 @@
 #ifndef __PARSER_H__
 #define __PARSER_H__
 
+typedef struct parser
+{
+    Token token;
+    int returnCode;
+    bool tokenProcessed;
+    bool declaredMain;
+    bool funcInExpr;
+
+    int countLeft;
+    int countRight;
+} Parser;
+
+int initParser(Parser *parser);
 int parse();
 
-int package();
-int prog();
-int params();
-int params_n();
-int ret();
-int ret_params();
-int ret_params_n();
-int type();
-int body();
-int body_n();
-int id_n();
-int definition();
-int assign();
-int value();
-int value_n();
-int func();
-int arg();
+int package(Parser *parser);
+int prog(Parser *parser);
+int params(Parser *parser);
+int params_n(Parser *parser);
+int ret(Parser *parser);
+int ret_params(Parser *parser);
+int ret_params_n(Parser *parser);
+int type(Parser *parser);
+int body(Parser *parser);
+int body_n(Parser *parser);
+int id_n(Parser *parser);
+int for_definition(Parser *parser);
+int for_assign(Parser *parser);
+int value(Parser *parser);
+int expression_n(Parser *parser);
+int definition(Parser *parser);
+int assign(Parser *parser);
+int func(Parser *parser);
+int arg(Parser *parser);
+int term(Parser *parser);
+int term_n(Parser *parser);
+int ret_values(Parser *parser);
+
+/**
+ * @brief Gets new token if token isn't processed. Returns parser->returnCode code if anything fails.
+ *        Unprocessed token occurs in "<rule> -> eps" rule, meaning that current token 
+ *        is from another rule and in next getToken() call, token remains the same
+ *  
+ */
+#define getToken()                                                                \
+    if (parser->tokenProcessed)                                                   \
+    {                                                                             \
+        if ((parser->returnCode = getNextToken(&parser->token)) != ERROR_CODE_OK) \
+            return parser->returnCode;                                            \
+    }                                                                             \
+    else                                                                          \
+        parser->tokenProcessed = true
+
+/**
+ * @brief Checks if token type is same as argument
+ * 
+ */
+#define isType(_token) (parser->token.type == _token)
+
+/**
+ * @brief Gets new token and checks type. Returns syntax parser->returnCode code, if types don't match
+ * 
+ */
+#define getType(_token)  \
+    getToken();          \
+    if (!isType(_token)) \
+        return ERROR_SYN;
+
+/**
+ * @brief Checks if token type is keyword and then checks if token attribute is same as argument
+ * 
+ */
+#define isKeyword(_keyword) ((parser->token.type == TOKEN_KEYWORD) && (parser->token.attribute.keyword == _keyword))
+
+/**
+ * @brief Gets new token, checks if token type is keyword ane then checks token attribute. Returns syntax parser->returnCode code, if keywords don't match
+ * 
+ */
+#define getKeyword(_keyword)                         \
+    getType(TOKEN_KEYWORD);                          \
+    if (parser->token.attribute.keyword != _keyword) \
+        return ERROR_SYN;
+
+/**
+ * @brief Calls function in argument. If function doesn't return 0, returns that value.
+ * 
+ */
+#define getRule(_rule)                       \
+    parser->returnCode = _rule(parser);      \
+    if (parser->returnCode != ERROR_CODE_OK) \
+    return parser->returnCode
+
+#define returnRule()           \
+    else { return ERROR_SYN; } \
+    return ERROR_CODE_OK
 
 #endif
