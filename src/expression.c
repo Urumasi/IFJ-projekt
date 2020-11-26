@@ -177,11 +177,12 @@ int reduce() {
 	if (checkRule(count)){
 		return ERROR_SYN;
 	}
-	
 	for (int i = 0; i < count+1; i++) {
 		stackPop(&stack);
 	}
-	stackPush(&stack, NON_TERM);
+	if (stackPush(&stack, NON_TERM)) {
+		return ERROR_INTERNAL;
+	}
 
 	return ERROR_CODE_OK;
 }
@@ -189,9 +190,11 @@ int reduce() {
 int expression(Parser  *parser) {
 	stackInit(&stack);
 	char index;
-	int ok = 0;
+	int end = 0;
 	int tokenCount = 0;
+	int returnCode = 0;
 	bool idFirst = false;
+
 	if (stackPush(&stack, DOLAR)) {
 		return cleanup(parser, ERROR_INTERNAL);
 	}
@@ -200,7 +203,7 @@ int expression(Parser  *parser) {
 	Prec_symbol symbol;
 	getToken(); 
 
-	while(!ok) {
+	while(!end) {
 		tokenCount++;
 		if (tokenCount == 1 && isType(TOKEN_IDENTIFIER)) {
 			idFirst = true;
@@ -218,33 +221,39 @@ int expression(Parser  *parser) {
 		switch (index) {
 			case '=':
 				if (stackPush(&stack, RIGHT_BRACKET)) {
-					return cleanup(parser,ERROR_INTERNAL);
+					return cleanup(parser, ERROR_INTERNAL);
 				}
 				getToken();
 				break;
 			case '<':
-				stackInsertAfterTerm(&stack, HANDLE);
-				stackPush(&stack, symbol);
+				if (stackInsertAfterTerm(&stack, HANDLE)) {
+					return cleanup(parser, ERROR_INTERNAL);
+				}
+				if (stackPush(&stack, symbol)) {
+					return cleanup(parser, ERROR_INTERNAL);
+				}
 				getToken();
 				break;
 			case '>':
-				if(reduce()){
+				returnCode = reduce();
+				if(returnCode == ERROR_SYN) {
     				return cleanup(parser, ERROR_SYN);
+				}else if (returnCode == ERROR_INTERNAL) {
+					return cleanup(parser, ERROR_INTERNAL);
 				}
 				break;
 			default:
 				if (top_terminal->data != DOLAR && getSymbolFromToken(parser) == DOLAR){
-					ok = 1;
+					end = 1;
 					break;
 				}else return cleanup(parser, ERROR_SYN);
 		}
-		printStack();
+		//printStack();
     }
 
 	if (!(stack.top->data == NON_TERM && stack.top->next->data == DOLAR)) {
 		return cleanup(parser, ERROR_SYN);
 	}
-    
-	//printStack();
+
     return cleanup(parser, ERROR_CODE_OK);
 }
