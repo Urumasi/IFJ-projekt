@@ -109,9 +109,27 @@ int getSymbolFromToken(Parser *parser) {
 	}else return DOLAR;
 }
 
+int checkRule(int count){
+	if (count == 1) {
+		if (stack.top->data == ID || stack.top->data == INT || stack.top->data == FLOAT || stack.top->data == STRING) {
+			return ERROR_CODE_OK;
+		}
+	}else if (count == 3) {
+		if (stack.top->data == NON_TERM && stack.top->next->next->data == NON_TERM) {
+			if (stack.top->next->data == PLUS || stack.top->next->data == MINUS || stack.top->next->data == MULTIPLY ||stack.top->next->data == DIVIDE) {
+				return ERROR_CODE_OK;
+			}
+		}else if (stack.top->data == LEFT_BRACKET && stack.top->next->next->data == RIGHT_BRACKET){
+			if (stack.top->next->data == NON_TERM){
+				return ERROR_CODE_OK;
+			}
+		}
+	}
+	return ERROR_SYN;
+}
+
 int reduce() {
-	tItemPtr *tmp;
-	tmp = stackTop(&stack);
+	tItemPtr *tmp = stackTop(&stack);;
 	int count = 0;
 	while (tmp != NULL) {
 		if (tmp->data != HANDLE){
@@ -120,7 +138,11 @@ int reduce() {
 		tmp = tmp->next;
 	}
 	
-	//rintf("------------ %d ----------\n", count);
+	if (checkRule(count)){
+		return ERROR_SYN;
+	}
+
+	//printf("------------ %d ----------\n", count);
 	for (int i = 0; i < count+1; i++) {
 		stackPop(&stack);
 	}
@@ -138,7 +160,7 @@ void printStack(){
 		printf("Item: %d. Value: %d. \n", i, tmp->data);
 		tmp = tmp->next;
 	}
-	
+	printf("--------------------------\n");
 }
 
 int expression(Parser  *parser) {
@@ -146,12 +168,13 @@ int expression(Parser  *parser) {
 	int ok = 0;
 	if (stackPush(&stack, DOLAR)) {
 		stackDispose(&stack);
+		parser->tokenProcessed = false;
 		return ERROR_INTERNAL;
 	}
 		
 	tItemPtr *top_terminal;
 	Prec_symbol symbol;
-	getToken();   
+	getToken(); 
 
 	do {
 		symbol = getSymbolFromToken(parser);
@@ -160,11 +183,12 @@ int expression(Parser  *parser) {
 		if (top_terminal->data == NON_TERM && top_terminal->next->data != DOLAR) {
 			top_terminal = top_terminal->next;
 		}
-		//printf("stack: %d token: %d \n", top_terminal->data, getIndexFromToken(parser));
+
 		switch (prec_table[getIndexFromSymbol(top_terminal->data)][getIndexFromToken(parser)]) {
 			case '=':
 				if (stackPush(&stack, DOLAR)) {
 					stackDispose(&stack);
+					parser->tokenProcessed = false;
 					return ERROR_INTERNAL;
 				}
 				getToken();
@@ -175,19 +199,21 @@ int expression(Parser  *parser) {
 				getToken();
 				break;
 			case '>':
-				reduce();
+				if(reduce()){
+					stackDispose(&stack);
+					parser->tokenProcessed = false;
+    				return ERROR_SYN;
+				}
 				break;
 			default:
-				if ((top_terminal->data != DOLAR && getSymbolFromToken(parser) == DOLAR)){
+				if (top_terminal->data != DOLAR && getSymbolFromToken(parser) == DOLAR){
 					ok = 1;
 				}
 				break;
 		}
 		
-		printStack();
-		printf("--------------------------\n");
-		//printf("\nSYMBOL %d\n", getSymbolFromToken(parser));
-    } while (!ok);
+		//printStack();
+    }while(!ok);
     
 	
 	parser->tokenProcessed = false;
