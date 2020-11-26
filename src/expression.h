@@ -11,9 +11,44 @@
  * @author Karel Norek <xnorek01@stud.fit.vutbr.cz>
  * @author Petr Salaba <xsalab00@stud.fit.vutbr.cz>
  */
+
 #ifndef __EXPRESSION_H__
 #define __EXPRESSION_H__
 
+typedef enum {
+	PLUS,
+	MINUS,
+	MULTIPLY,
+	DIVIDE,
+
+	LEFT_BRACKET,
+	RIGHT_BRACKET,
+
+	ID,
+	INT,
+	FLOAT,
+	STRING,
+
+	DOLAR,
+	HANDLE,
+	NON_TERM
+
+}Prec_symbol;
+
+typedef enum {
+    I_PLUS_MINUS,
+    I_MUL_DIV,
+
+    I_LEFT_BRACKET,
+    I_RIGHT_BRACKET,
+    
+    I_ID,
+
+    I_DOLAR
+
+}Prec_index;
+
+int getIndexFromSymbol(Prec_symbol symbol);
 int expression(Parser *parser);
 
-#endif
+#endif //__EXPRESSION_H__

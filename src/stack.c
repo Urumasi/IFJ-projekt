@@ -15,52 +15,77 @@
 #include <stdlib.h>
 #include "stack.h"
 
+#define HANDLE 11
+
 void stackInit(tStack* stack){
 	stack->top = NULL;
-	stack->size = 0;
 }
 
 void stackDispose(tStack* stack){
-	while (stackPop(stack, NULL));
+	while (!stackPop(stack));
 }
 
-unsigned stackSize(tStack* stack){
-	return stack->size;
+tItemPtr* stackTop(tStack* stack){
+	tItemPtr *tmp = stack->top;
+	return tmp;
 }
 
 bool stackEmpty(tStack* stack){
 	return !stack->top;
 }
 
-bool stackPush(tStack* stack, int value){
+int stackPush(tStack* stack, int value){
 	tItemPtr *item = malloc(sizeof(tItemPtr));
 	
 	if (item == NULL) {
-		return false;
+		return 1;
 	}
 
 	item->data = value;
 	item->next = stack->top;
 	stack->top = item;
-	stack->size++;
-	
-	return true;
+	return 0;
 }
 
-bool stackPop(tStack* stack, int *value){
+int stackInsertAfterTerm(tStack* stack, int value){
+	tItemPtr *tmp = stack->top;
+	tItemPtr *prev = NULL;
+
+	while(tmp != NULL) {
+		if (tmp->data < HANDLE) {
+			tItemPtr *new = malloc(sizeof(tItemPtr));
+			if (new == NULL) {
+				return 1;
+			}
+
+			new->data = value;
+
+			if (prev != NULL) {
+				new->next = prev->next;
+				prev->next = new;
+			}else {
+				new->next = stack->top;
+				stack->top= new;
+			}
+			return 0;
+		}
+		prev = tmp;
+		tmp = tmp->next;
+	}
+	return 0;
+}
+
+int stackPop(tStack* stack){
 	tItemPtr *item = NULL;
 
 	if (stack->top == NULL) {
-		return false;
+		return 1;
 	}
 
 	item = stack->top;
 	stack->top = item->next;
-	*value = item->data;
+	
 	free(item);
-	stack->size--;
 
-	return true;
+	return 0;
 }
-
-
