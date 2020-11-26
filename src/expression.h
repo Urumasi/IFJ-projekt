@@ -24,6 +24,13 @@ typedef enum {
 	LEFT_BRACKET,
 	RIGHT_BRACKET,
 
+	LESSER,
+	LESS_OR_EQ,
+	GREATER,
+	GRT_OR_EQ,
+	EQUAL,
+	NOT_EQUAL,
+
 	ID,
 	INT,
 	FLOAT,
@@ -43,6 +50,8 @@ typedef enum {
     I_RIGHT_BRACKET,
     
     I_ID,
+
+	I_RELATION,
  
     I_DOLAR
 

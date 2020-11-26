@@ -20,7 +20,7 @@
 #include "stack.h"
 #include "error.h"
 
-#define TABLE_SIZE 7
+#define TABLE_SIZE 8
 
 tStack stack;
 
@@ -44,13 +44,14 @@ sémantika - možná budu dělat já
 */
 
 const char prec_table[TABLE_SIZE][TABLE_SIZE] = {
-//	|+- |*/ | ( | ) | i | $ |
-	{'>','<','<','>','<','>'},	// +-
-	{'>','>','<','>','<','>'},	// */
-	{'<','<','<','=','<','-'},	// (
-	{'>','>','-','>','-','>'},	// )
-	{'>','>','-','>','-','>'},	// i
-	{'<','<','<','-','<','-'},	// $
+//	|+- |*/ | ( | ) | i | r | $ |
+	{'>','<','<','>','<','>','>'},	// +-
+	{'>','>','<','>','<','>','>'},	// */
+	{'<','<','<','=','<','<','-'},	// (
+	{'>','>','-','>','-','>','>'},	// )
+	{'>','>','-','>','-','>','>'},	// i
+	{'<','<','<','>','<','-','>'},	// r
+	{'<','<','<','-','<','<','-'},	// $
 };
 
 int cleanup(Parser *parser, int error) {
@@ -70,6 +71,8 @@ int getIndexFromSymbol(Prec_symbol symbol) {
 		return I_RIGHT_BRACKET;
 	}else if (symbol == ID || symbol == INT || symbol == FLOAT || symbol == STRING) {
 		return I_ID;
+	}else if (symbol == LESSER || symbol == LESS_OR_EQ || symbol == GREATER || symbol == GRT_OR_EQ || symbol == EQUAL || symbol == NOT_EQUAL){
+		return I_RELATION;
 	}else if (symbol == DOLAR || symbol == NON_TERM) {
 		return I_DOLAR;
 	}
@@ -86,9 +89,9 @@ int getIndexFromToken(Parser *parser) {
 		return I_RIGHT_BRACKET;
 	}else if (isType(TOKEN_IDENTIFIER) || isType(TOKEN_INT) || isType(TOKEN_FLOAT) || isType(TOKEN_STRING)) {
 		return I_ID;
-	}else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL) || isType(TOKEN_SEMICOLON)) {
-		return I_DOLAR;
-	}else return -1;
+	}else if (isType(TOKEN_LT) || isType(TOKEN_LEQ) || isType(TOKEN_GT) || isType(TOKEN_GEQ) || isType(TOKEN_EQ) || isType(TOKEN_NEQ)){
+		return I_RELATION;
+	}else return I_DOLAR;
 }
 
 int getSymbolFromToken(Parser *parser) {	
@@ -112,6 +115,18 @@ int getSymbolFromToken(Parser *parser) {
 		return FLOAT;
 	}else if (isType(TOKEN_STRING)) {
 		return STRING;
+	}else if (isType(TOKEN_LT)) {
+		return LESSER;
+	}else if (isType(TOKEN_LEQ)) {
+		return LESS_OR_EQ;
+	}else if (isType(TOKEN_GT)) {
+		return GREATER;
+	}else if (isType(TOKEN_GEQ)) {
+		return GRT_OR_EQ;
+	}else if (isType(TOKEN_EQ)) {
+		return EQUAL;
+	}else if (isType(TOKEN_NEQ)) {
+		return NOT_EQUAL;
 	}else return DOLAR;
 }
 
@@ -123,6 +138,10 @@ int checkRule(int count){
 	}else if (count == 3) {
 		if (stack.top->data == NON_TERM && stack.top->next->next->data == NON_TERM) {
 			if (stack.top->next->data == PLUS || stack.top->next->data == MINUS || stack.top->next->data == MULTIPLY ||stack.top->next->data == DIVIDE) {
+				return ERROR_CODE_OK;
+			}else if (stack.top->next->data == LESSER || stack.top->next->data == LESS_OR_EQ || stack.top->next->data == GRT_OR_EQ ||stack.top->next->data == GREATER){
+				return ERROR_CODE_OK;
+			}else if (stack.top->next->data == EQUAL || stack.top->next->data == NOT_EQUAL){
 				return ERROR_CODE_OK;
 			}
 		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){
@@ -162,7 +181,6 @@ int reduce() {
 	for (int i = 0; i < count+1; i++) {
 		stackPop(&stack);
 	}
-
 	stackPush(&stack, NON_TERM);
 
 	return ERROR_CODE_OK;
@@ -180,16 +198,13 @@ int expression(Parser  *parser) {
 	Prec_symbol symbol;
 	getToken(); 
 
-	do {
+	while(!ok) {
 		symbol = getSymbolFromToken(parser);
 		top_terminal = stackTop(&stack);
 		if (top_terminal->data == NON_TERM && top_terminal->next->data != DOLAR) {
 			top_terminal = top_terminal->next;
 		}
 		index = prec_table[getIndexFromSymbol(top_terminal->data)][getIndexFromToken(parser)];
-		if (index == '-'){
-			break;
-		}
 		switch (index) {
 			case '=':
 				if (stackPush(&stack, RIGHT_BRACKET)) {
@@ -210,13 +225,12 @@ int expression(Parser  *parser) {
 			default:
 				if (top_terminal->data != DOLAR && getSymbolFromToken(parser) == DOLAR){
 					ok = 1;
-				}
-				break;
+					break;
+				}else return cleanup(parser, ERROR_SYN);
 		}
-		
 		//printStack();
-    }while(!ok);
+    }
     
-	printStack();
+	//printStack();
     return cleanup(parser, ERROR_CODE_OK);
 }
