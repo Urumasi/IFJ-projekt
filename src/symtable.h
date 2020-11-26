@@ -1,73 +1,70 @@
-#ifndef __SYMTAB_H__
-#define __SYMTAB_H__
+#ifndef __SYMTABLE_H__
+#define __SYMTABLE_H__
 
 #include <string.h>
 #include <stdbool.h>
+#include "str.h"
 
-struct symtable;
-typedef struct symtable symtable;
+// SYMTABLE
+#define MAX_SYMSIZE 101
 
-typedef const char *symtable_key;
-typedef struct symtable_value
+typedef enum
 {
-	int test;
-} * symtable_value;
+	INT,
+	FLOAT64,
+	STRING,
+	BOOL,
+	UNDERSCORE
+} DataType;
 
-struct symtable_item;
-
-typedef struct symtable_iterator
+typedef struct tSymtableData
 {
-	struct symtable_item *ptr;
-	const symtable *t;
-	size_t idx;
-} symtable_iterator;
+	//func
+	bool defined;
+	string *argumentTypes;
+	string *returnTypes;
 
-struct symtable_item
+	//var
+	DataType type;
+} tSymtableData;
+
+typedef struct tSymtableItem
 {
-	symtable_key key;
-	symtable_value data;
-	struct symtable_item *next;
-};
+	string *key;
+	tSymtableData data;
+	struct tSymtableItem *ptrnext;
+} tSymtableItem;
 
-struct symtable
+typedef tSymtableItem *tSymtable[MAX_SYMSIZE];
+
+extern int symtableSIZE;
+
+int hashCode(string *key);
+void symtableInit(tSymtable *ptrht);
+tSymtableItem *symtableSearch(tSymtable *ptrht, string *key);
+void symtableInsert(tSymtable *ptrht, string *key, tSymtableData data);
+tSymtableData symtableRead(tSymtable *ptrht, string *key);
+void symtableDelete(tSymtable *ptrht, string *key);
+void symtableClearAll(tSymtable *ptrht);
+
+//SYMSTACK
+
+typedef struct tSymStackItem
 {
-	size_t size;
-	size_t arr_size;
-	struct symtable_item *buckets[];
-};
+	tSymtable symtable;
+	struct tSymStackItem *next;
+} tSymStackItem;
 
-size_t symtable_hash_fun(symtable_key str);
-
-symtable *symtable_init(size_t n);
-size_t symtable_size(const symtable *t);
-size_t symtable_bucket_count(const symtable *t);
-
-symtable_iterator symtable_iterator_init(const symtable *t, struct symtable_item *item, size_t index);
-
-symtable_iterator symtable_find(symtable *t, symtable_key key);
-symtable_iterator symtable_lookup_add(symtable *t, symtable_key key);
-
-void symtable_erase(symtable *t, symtable_iterator it);
-
-symtable_iterator symtable_begin(const symtable *t);
-symtable_iterator symtable_end(const symtable *t);
-
-symtable_iterator symtable_iterator_next(symtable_iterator it);
-
-bool symtable_iterator_valid(symtable_iterator it);
-
-inline bool symtable_iterator_equal(symtable_iterator it1, symtable_iterator it2)
+typedef struct
 {
-	return it1.ptr == it2.ptr && it1.t == it2.t;
-}
+	tSymStackItem *top;
+} tSymStack;
 
-symtable_key symtable_iterator_get_key(symtable_iterator it);
+void symStackInit(tSymStack *symStack);
+void symStackDispose(tSymStack *symStack);
+unsigned symStackSize(tSymStack *symStack);
+bool symStackEmpty(tSymStack *symStack);
+bool symStackPush(tSymStack *symStack);
+bool symStackPop(tSymStack *symStack);
 
-symtable_value symtable_iterator_get_value(symtable_iterator it);
-
-symtable_value symtable_iterator_set_value(symtable_iterator it, symtable_value val);
-
-void symtable_clear(symtable *t);
-void symtable_free(symtable *t);
-
-#endif // __SYMTAB_H__
+#endif // __SYMTABLE_H__

@@ -15,6 +15,8 @@
 #ifndef __PARSER_H__
 #define __PARSER_H__
 
+#include <stdbool.h>
+
 typedef struct parser
 {
     Token token;
