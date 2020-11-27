@@ -13,12 +13,12 @@
  */
 
 #include <stdio.h>
-#include <stdbool.h>
-#include "scanner.h"
 #include "parser.h"
 #include "expression.h"
 #include "error.h"
 #include "symtable.h"
+#include "generator.h"
+#include "str.h"
 
 Parser parser;
 
@@ -40,6 +40,7 @@ int parse()
 {
     Parser parser;
     initParser(&parser);
+    generate_prog_init();
     parser.returnCode = package(&parser);
     if (parser.returnCode != ERROR_CODE_OK)
         return parser.returnCode;
@@ -86,6 +87,7 @@ int prog(Parser *parser)
         getType(TOKEN_IDENTIFIER);
         if (!strCmpConstStr(parser->token.attribute.string, "main"))
             parser->declaredMain = true;
+        generate_func_header(&parser->token);
         getType(TOKEN_LBRACKET);
         getRule(params);
         getType(TOKEN_RBRACKET);
@@ -95,6 +97,7 @@ int prog(Parser *parser)
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_func_end();
         getRule(prog);
     }
     //<prog> -> EOF
@@ -270,14 +273,17 @@ int body(Parser *parser)
         parser->tokenProcessed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        unsigned int if_label = generate_if_then();
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getKeyword(KW_ELSE);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_if_else(if_label);
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_if_end(if_label);
         getRule(body);
     }
     // <body> -> RETURN <ret_values> EOL <body>
@@ -285,6 +291,7 @@ int body(Parser *parser)
     {
         getRule(ret_values);
         getType(TOKEN_EOL);
+        generate_return();
         getRule(body);
     }
     // <body> -> ID <body_n> EOL <body>
@@ -314,24 +321,36 @@ int body(Parser *parser)
  */
 int body_n(Parser *parser)
 {
+    string ident_name;
+    if(strInit(&ident_name))
+        return ERROR_INTERNAL;
+    if(strCopyString(&ident_name, parser->token.attribute.string)){
+        strFree(&ident_name);
+        return ERROR_INTERNAL;
+    }
+
     getToken();
     //<body_n> -> <definition>
     if (isType(TOKEN_VAR_DEF))
     {
         parser->tokenProcessed = false;
         getRule(definition);
+        strFree(&ident_name);
     }
     //<body_n> -> <assign>
     else if (isType(TOKEN_COMMA) || isType(TOKEN_ASSIGN))
     {
         parser->tokenProcessed = false;
         getRule(assign);
+        strFree(&ident_name);
     }
     //<body_n>-> ( <arg> )
     else if (isType(TOKEN_LBRACKET))
     {
         getRule(arg);
         getType(TOKEN_RBRACKET);
+        generate_func_call(&ident_name);
+        strFree(&ident_name);
     }
     returnRule();
 }
@@ -457,8 +476,16 @@ int definition(Parser *parser)
 {
     parser->countLeft = 1;
     // <definition> -> := <expression>
+    string defined_var_name;
+    if(strInit(&defined_var_name))
+        return ERROR_INTERNAL;
+    if(strCopyString(&defined_var_name, parser->token.attribute.string))
+        return ERROR_INTERNAL;
+    generate_var_definition(&parser->token);
     getType(TOKEN_VAR_DEF);
     getRule(expression);
+    generate_var_definition_assign(&defined_var_name);
+    strFree(&defined_var_name);
     return ERROR_CODE_OK;
 }
 
@@ -515,6 +542,7 @@ int arg(Parser *parser)
     {
         parser->tokenProcessed = false;
         getRule(term);
+        generate_push(&parser->token);
         getRule(term_n);
     }
     // <arg> -> ε
@@ -565,6 +593,7 @@ int term_n(Parser *parser)
     if (isType(TOKEN_COMMA))
     {
         getRule(term);
+        generate_push(&parser->token);
         getRule(term_n);
     }
     // <term_n> -> ε

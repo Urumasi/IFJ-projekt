@@ -15,10 +15,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "scanner.h"
-#include "parser.h"
 #include "expression.h"
 #include "stack.h"
 #include "error.h"
+#include "generator.h"
 
 #define TABLE_SIZE 8
 
@@ -138,11 +138,14 @@ int checkRule(int count){
 	}else if (count == 3) {
 		if (stack.top->data == NON_TERM && stack.top->next->next->data == NON_TERM) {
 			if (stack.top->next->data == PLUS || stack.top->next->data == MINUS || stack.top->next->data == MULTIPLY ||stack.top->next->data == DIVIDE) {
+                generate_binary_op(stack.top->next->data);
 				return ERROR_CODE_OK;
 			}else if (stack.top->next->data == LESSER || stack.top->next->data == LESS_OR_EQ || stack.top->next->data == GRT_OR_EQ ||stack.top->next->data == GREATER){
+			    generate_comparison(stack.top->next->data);
 				return ERROR_CODE_OK;
-			}else if (stack.top->next->data == EQUAL || stack.top->next->data == NOT_EQUAL){
-				return ERROR_CODE_OK;
+            }else if (stack.top->next->data == EQUAL || stack.top->next->data == NOT_EQUAL){
+                generate_comparison(stack.top->next->data);
+                return ERROR_CODE_OK;
 			}
 		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){
 			if (stack.top->next->data == NON_TERM){
@@ -165,7 +168,7 @@ void printStack(){
 }
 
 int reduce() {
-	tItemPtr *tmp = stackTop(&stack);;
+	tItemPtr *tmp = stackTop(&stack);
 	int count = 0;
 	while (tmp != NULL) {
 		if (tmp->data != HANDLE){
@@ -226,6 +229,7 @@ int expression(Parser  *parser) {
 				getToken();
 				break;
 			case '<':
+			    generate_push(&parser->token);
 				if (stackInsertAfterTerm(&stack, HANDLE)) {
 					return cleanup(parser, ERROR_INTERNAL);
 				}
