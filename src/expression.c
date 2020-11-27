@@ -137,11 +137,9 @@ int checkRule(int count){
 		}
 	}else if (count == 3) {
 		if (stack.top->data == NON_TERM && stack.top->next->next->data == NON_TERM) {
-			if (stack.top->next->data == PLUS || stack.top->next->data == MINUS || stack.top->next->data == MULTIPLY ||stack.top->next->data == DIVIDE) {
+			if (stack.top->next->data >= PLUS && stack.top->next->data <= DIVIDE) {
 				return ERROR_CODE_OK;
-			}else if (stack.top->next->data == LESSER || stack.top->next->data == LESS_OR_EQ || stack.top->next->data == GRT_OR_EQ ||stack.top->next->data == GREATER){
-				return ERROR_CODE_OK;
-			}else if (stack.top->next->data == EQUAL || stack.top->next->data == NOT_EQUAL){
+			}else if (stack.top->next->data >= LESSER && stack.top->next->data <= NOT_EQUAL){
 				return ERROR_CODE_OK;
 			}
 		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){
@@ -194,6 +192,8 @@ int expression(Parser  *parser) {
 	int tokenCount = 0;
 	int returnCode = 0;
 	bool idFirst = false;
+	parser->exprType = tNONE;
+	parser->exprIsBool = false;
 
 	if (stackPush(&stack, DOLAR)) {
 		return cleanup(parser, ERROR_INTERNAL);
@@ -205,12 +205,52 @@ int expression(Parser  *parser) {
 
 	while(!end) {
 		tokenCount++;
+		//function check
 		if (tokenCount == 1 && isType(TOKEN_IDENTIFIER)) {
 			idFirst = true;
 		}else if (tokenCount == 2 && idFirst && isType(TOKEN_LBRACKET)) {
 			parser->funcInExpr = true;
 			return cleanup(parser, ERROR_CODE_OK);
 		}
+
+		// type check
+		if(isType(TOKEN_INT))
+		{
+			if(parser->exprType == tNONE) 
+			{
+				parser->exprType = tINT;
+			}
+			else if(parser->exprType != tINT)
+				return cleanup(parser, ERROR_SEM_COMP);
+		}
+		else if(isType(TOKEN_FLOAT))
+		{
+			if (parser->exprType == tNONE)
+				parser->exprType = tFLOAT64;
+			else if (parser->exprType != tFLOAT64)
+				return cleanup(parser, ERROR_SEM_COMP);
+		}
+		else if(isType(TOKEN_STRING))
+		{
+			if (parser->exprType == tNONE)
+				parser->exprType = tSTRING;
+			else if (parser->exprType != tSTRING)
+				return cleanup(parser, ERROR_SEM_COMP);
+		}
+		else if(isType(TOKEN_IDENTIFIER))
+		{
+			// TODO - id type (symtable)
+			if(!strCmpConstStr(parser->token.attribute.string, "_"))
+				return cleanup(parser, ERROR_SEM_OTHER);
+		}
+		if (parser->token.type >= TOKEN_EQ && parser->token.type <= TOKEN_GT)
+		{
+			parser->exprIsBool = true;
+			if(!parser->exprBoolAllowed)
+				return cleanup(parser, ERROR_SEM_COMP);
+		}
+		if(parser->exprType == tSTRING && parser->token.type >= TOKEN_MINUS && parser->token.type <= TOKEN_DIV)
+			return cleanup(parser, ERROR_SEM_COMP);
 
 		symbol = getSymbolFromToken(parser);
 		top_terminal = stackTop(&stack);
@@ -247,13 +287,15 @@ int expression(Parser  *parser) {
 					end = 1;
 					break;
 				}else return cleanup(parser, ERROR_SYN);
-		}
-		//printStack();
-    }
+		}		
+	}
 
 	if (!(stack.top->data == NON_TERM && stack.top->next->data == DOLAR)) {
 		return cleanup(parser, ERROR_SYN);
 	}
 
-    return cleanup(parser, ERROR_CODE_OK);
+	if(parser->exprBoolAllowed && !parser->exprIsBool)
+		return cleanup(parser, ERROR_SEM_COMP);
+
+	return cleanup(parser, ERROR_CODE_OK);
 }

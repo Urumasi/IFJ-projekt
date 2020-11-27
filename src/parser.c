@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 #include <stdbool.h>
+#include <stdlib.h>
 #include "scanner.h"
 #include "parser.h"
 #include "expression.h"
@@ -25,10 +26,31 @@ Parser parser;
 int initParser(Parser *parser)
 {
     parser->tokenProcessed = true;
-    parser->declaredMain = false;
     parser->funcInExpr = false;
     parser->countLeft = 1;
     parser->countRight = 1;
+    parser->exprType = tNONE;
+    parser->exprIsBool = false;
+    parser->exprBoolAllowed = false;
+    strInit(&parser->str1);
+    strInit(&parser->str2);
+    symtableInit(&parser->sGlobal);
+    symStackInit(&parser->sLocal);
+    parser->sData = malloc(sizeof(tSymtableData));
+    parser->sData->defined = false;
+    parser->sData->type = 0;
+    parser->sData->argumentTypes = NULL;
+    parser->sData->returnTypes = NULL;
+    return 0;
+}
+
+void deleteParser(Parser *parser)
+{
+    strFree(&parser->str1);
+    strFree(&parser->str2);
+    free(parser->sData);
+    symtableClearAll(&parser->sGlobal);
+    symStackDispose(&parser->sLocal);
 }
 
 /**
@@ -41,12 +63,11 @@ int parse()
     Parser parser;
     initParser(&parser);
     parser.returnCode = package(&parser);
-    if (parser.returnCode != ERROR_CODE_OK)
-        return parser.returnCode;
-
-    // missing main function
-    if (parser.declaredMain == false)
-        return ERROR_SEM;
+    if (parser.returnCode == ERROR_CODE_OK)
+    {
+    }
+    deleteParser(&parser);
+    return parser.returnCode;
 }
 
 /**
@@ -84,12 +105,16 @@ int prog(Parser *parser)
     if (isKeyword(KW_FUNC))
     {
         getType(TOKEN_IDENTIFIER);
-        if (!strCmpConstStr(parser->token.attribute.string, "main"))
-            parser->declaredMain = true;
+        strClear(&parser->str1);
+        strClear(&parser->str2);
+        parser->sData->id = parser->token.attribute.string;
+        parser->sData->defined = false;
         getType(TOKEN_LBRACKET);
         getRule(params);
+        parser->sData->argumentTypes = &parser->str1;
         getType(TOKEN_RBRACKET);
         getRule(ret);
+        parser->sData->returnTypes = &parser->str2;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -141,12 +166,15 @@ int type(Parser *parser)
     getToken();
     if (isKeyword(KW_INT))
     {
+        strAddChar(&parser->str1, '0');
     }
     else if (isKeyword(KW_FLOAT64))
     {
+        strAddChar(&parser->str1, '1');
     }
     else if (isKeyword(KW_STRING))
     {
+        strAddChar(&parser->str1, '2');
     }
     returnRule();
 }
@@ -205,8 +233,21 @@ int ret_params(Parser *parser)
 {
     getToken();
     //<ret_params> -> <type> <ret_params_n>
+
     if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
     {
+        if (isKeyword(KW_INT))
+        {
+            strAddChar(&parser->str2, '0');
+        }
+        else if (isKeyword(KW_FLOAT64))
+        {
+            strAddChar(&parser->str2, '1');
+        }
+        else if (isKeyword(KW_STRING))
+        {
+            strAddChar(&parser->str2, '2');
+        }
         getRule(ret_params_n);
     }
     //<ret_params>->ε
@@ -228,7 +269,19 @@ int ret_params_n(Parser *parser)
     //<ret_params_n>->, <type> <ret_params_n>
     if (isType(TOKEN_COMMA))
     {
-        getRule(type);
+        getToken();
+        if (isKeyword(KW_INT))
+        {
+            strAddChar(&parser->str2, '0');
+        }
+        else if (isKeyword(KW_FLOAT64))
+        {
+            strAddChar(&parser->str2, '1');
+        }
+        else if (isKeyword(KW_STRING))
+        {
+            strAddChar(&parser->str2, '2');
+        }
         getRule(ret_params_n);
     }
     //<ret_params_n>->ε
@@ -252,8 +305,9 @@ int body(Parser *parser)
     {
         getRule(for_definition);
         getType(TOKEN_SEMICOLON);
+        parser->exprBoolAllowed = true;
         getRule(expression);
-        parser->tokenProcessed = false;
+        parser->exprBoolAllowed = false;
         getType(TOKEN_SEMICOLON);
         getRule(for_assign);
         getType(TOKEN_LCURLYBRACKET);
@@ -266,8 +320,9 @@ int body(Parser *parser)
     // <body> -> IF <expression> { EOL <body> } ELSE { EOL <body> } EOL <body>
     else if (isKeyword(KW_IF))
     {
+        parser->exprBoolAllowed = true;
         getRule(expression);
-        parser->tokenProcessed = false;
+        parser->exprBoolAllowed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -537,6 +592,8 @@ int term(Parser *parser)
     // <term> -> ID
     if (isType(TOKEN_IDENTIFIER))
     {
+        if (!strCmpConstStr(parser->token.attribute.string, "_"))
+            return ERROR_SEM_OTHER;
     }
     // <term> -> VALUE_INT
     else if (isType(TOKEN_INT))
