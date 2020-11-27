@@ -16,6 +16,8 @@
 #define __PARSER_H__
 
 #include <stdbool.h>
+#include "symtable.h"
+#include "stack.h"
 #include "scanner.h"
 
 typedef struct parser
@@ -24,13 +26,29 @@ typedef struct parser
     int returnCode;
     bool tokenProcessed;
     bool declaredMain;
+    bool missingReturn;
+    bool inScope;
+    int countScope;
     bool funcInExpr;
+    DataType exprType;
+    bool exprIsBool;
+    bool exprBoolAllowed;
 
     int countLeft;
     int countRight;
+
+    string str1;
+    string str2;
+
+    tSymtable sGlobal;
+    tSymStack sLocal;
+
+    tSymtableData *sData;
+
 } Parser;
 
 int initParser(Parser *parser);
+void deleteParser(Parser *parser);
 int parse();
 
 int package(Parser *parser);

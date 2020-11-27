@@ -1,18 +1,15 @@
 //prevzaný súbor zo stránky predmetu IFJ
-
+#ifndef __STR_H__
+#define __STR_H__
 
 //hlavickovy soubor pro praci s nekonecne dlouhymi retezci
 
-#ifndef __STRING_H__
-#define __STRING_H__
-
 typedef struct
 {
-  char* str;		// misto pro dany retezec ukonceny znakem '\0'
-  int length;		// skutecna delka retezce
-  int allocSize;	// velikost alokovane pameti
+  char *str;     // misto pro dany retezec ukonceny znakem '\0'
+  int length;    // skutecna delka retezce
+  int allocSize; // velikost alokovane pameti
 } string;
-
 
 int strInit(string *s);
 void strFree(string *s);
@@ -26,4 +23,4 @@ int strCmpConstStr(string *s1, char *s2);
 char *strGetStr(string *s);
 int strGetLength(string *s);
 
-#endif //__STRING_H__
+#endif
