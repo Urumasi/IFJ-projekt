@@ -13,12 +13,14 @@ typedef enum
 	tINT,
 	tFLOAT64,
 	tSTRING,
-	tBOOL,
-	tUNDERSCORE
+	tNONE
 } DataType;
+
+typedef char *tKey;
 
 typedef struct tSymtableData
 {
+	string *id;
 	//func
 	bool defined;
 	string *argumentTypes;
@@ -30,7 +32,7 @@ typedef struct tSymtableData
 
 typedef struct tSymtableItem
 {
-	string *key;
+	tKey key;
 	tSymtableData data;
 	struct tSymtableItem *ptrnext;
 } tSymtableItem;
@@ -39,12 +41,12 @@ typedef tSymtableItem *tSymtable[MAX_SYMSIZE];
 
 extern int symtableSIZE;
 
-int hashCode(string *key);
+int hashCode(tKey key);
 void symtableInit(tSymtable *ptrht);
-tSymtableItem *symtableSearch(tSymtable *ptrht, string *key);
-void symtableInsert(tSymtable *ptrht, string *key, tSymtableData data);
-tSymtableData symtableRead(tSymtable *ptrht, string *key);
-void symtableDelete(tSymtable *ptrht, string *key);
+tSymtableItem *symtableSearch(tSymtable *ptrht, tKey key);
+void symtableInsert(tSymtable *ptrht, tKey key, tSymtableData *data);
+tSymtableData symtableRead(tSymtable *ptrht, tKey key);
+void symtableDelete(tSymtable *ptrht, tKey key);
 void symtableClearAll(tSymtable *ptrht);
 
 //SYMSTACK

@@ -5,12 +5,12 @@
 
 int symtableSIZE = MAX_SYMSIZE;
 
-int hashCode(string *key)
+int hashCode(tKey key)
 {
     int retval = 1;
-    int keylen = key->length;
+    int keylen = strlen(key);
     for (int i = 0; i < keylen; i++)
-        retval += key->str[i];
+        retval += key[i];
     return (retval % symtableSIZE);
 }
 
@@ -22,24 +22,24 @@ void symtableInit(tSymtable *ptrht)
     }
 }
 
-tSymtableItem *symtableSearch(tSymtable *ptrht, string *key)
+tSymtableItem *symtableSearch(tSymtable *ptrht, tKey key)
 {
     tSymtableItem *item = (*ptrht)[hashCode(key)];
     while (item)
     {
-        if (strcmp(item->key->str, key->str) == 0)
+        if (strcmp(item->key, key) == 0)
             return item;
         item = item->ptrnext;
     }
     return NULL;
 }
 
-void symtableInsert(tSymtable *ptrht, string *key, tSymtableData data)
+void symtableInsert(tSymtable *ptrht, tKey key, tSymtableData *data)
 {
     tSymtableItem *item = symtableSearch(ptrht, key);
     if (item)
     {
-        item->data = data;
+        item->data = *data;
     }
     else
     {
@@ -47,12 +47,11 @@ void symtableInsert(tSymtable *ptrht, string *key, tSymtableData data)
         tSymtableItem *newItem = malloc(sizeof(struct tSymtableItem));
         if (newItem)
         {
-            newItem->key = malloc(sizeof(string));
+            newItem->key = malloc(strlen(key) + 1);
             if (newItem->key)
             {
-                strInit(newItem->key);
-                strCopyString(newItem->key, key);
-                newItem->data = data;
+                memcpy(newItem->key, key, strlen(key) + 1);
+                newItem->data = *data;
                 newItem->ptrnext = item;
                 (*ptrht)[hashCode(key)] = newItem;
             }
@@ -60,28 +59,25 @@ void symtableInsert(tSymtable *ptrht, string *key, tSymtableData data)
     }
 }
 
-tSymtableData symtableRead(tSymtable *ptrht, string *key)
+tSymtableData symtableRead(tSymtable *ptrht, tKey key)
 {
     tSymtableItem *item = symtableSearch(ptrht, key);
     if (item)
         return item->data;
     else
     {
-        tSymtableData data;
-        data.defined = false;
-        return data;
+        return (tSymtableData){.type = 0, .defined = false, .returnTypes = NULL, .argumentTypes = NULL};
     }
 }
 
-void symtableDelete(tSymtable *ptrht, string *key)
+void symtableDelete(tSymtable *ptrht, tKey key)
 {
     tSymtableItem *item = (*ptrht)[hashCode(key)];
     if (item)
     {
-        if (strcmp(item->key->str, key->str) == 0)
+        if (strcmp(item->key, key) == 0)
         {
             (*ptrht)[hashCode(key)] = item->ptrnext;
-            strFree(item->key);
             free(item->key);
             free(item);
         }
@@ -89,10 +85,9 @@ void symtableDelete(tSymtable *ptrht, string *key)
         item = item->ptrnext;
         while (item)
         {
-            if (strcmp(item->key->str, key->str) == 0)
+            if (strcmp(item->key, key) == 0)
             {
                 prevItem->ptrnext = item->ptrnext;
-                strFree(item->key);
                 free(item->key);
                 free(item);
                 item->ptrnext = NULL;
@@ -113,7 +108,6 @@ void symtableClearAll(tSymtable *ptrht)
         {
             tSymtableItem *prevItem = item;
             item = item->ptrnext;
-            strFree(prevItem->key);
             free(prevItem->key);
             free(prevItem);
         }
@@ -142,7 +136,7 @@ bool symSymStackEmpty(tSymStack *symStack)
 
 bool symStackPush(tSymStack *stack)
 {
-    tSymStackItem *item = malloc(sizeof(tSymStackItem));
+    tSymStackItem *item = malloc(sizeof(struct tSymStackItem));
     if (!item)
         return false;
     symtableInit(&item->symtable);

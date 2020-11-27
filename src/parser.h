@@ -29,12 +29,21 @@ typedef struct parser
     bool inScope;
     int countScope;
     bool funcInExpr;
+    DataType exprType;
+    bool exprIsBool;
+    bool exprBoolAllowed;
 
     int countLeft;
     int countRight;
 
+    string str1;
+    string str2;
+
     tSymtable sGlobal;
     tSymStack sLocal;
+
+    tSymtableData *sData;
+
 } Parser;
 
 int initParser(Parser *parser);
