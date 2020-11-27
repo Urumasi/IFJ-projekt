@@ -15,6 +15,8 @@
 #ifndef __EXPRESSION_H__
 #define __EXPRESSION_H__
 
+#include "parser.h"
+
 typedef enum {
 	PLUS,
 	MINUS,
