@@ -20,15 +20,17 @@ typedef char *tKey;
 
 typedef struct tSymtableData
 {
-	string *id;
+	string id;
+
 	//func
 	bool defined;
-	string *argumentTypes;
-	string *returnTypes;
+	bool typesSet;
+	string argumentTypes;
+	string returnTypes;
 
 	//var
 	DataType type;
-} tSymtableData;
+} * tSymtableData;
 
 typedef struct tSymtableItem
 {
@@ -41,16 +43,6 @@ typedef tSymtableItem *tSymtable[MAX_SYMSIZE];
 
 extern int symtableSIZE;
 
-int hashCode(tKey key);
-void symtableInit(tSymtable *ptrht);
-tSymtableItem *symtableSearch(tSymtable *ptrht, tKey key);
-void symtableInsert(tSymtable *ptrht, tKey key, tSymtableData *data);
-tSymtableData symtableRead(tSymtable *ptrht, tKey key);
-void symtableDelete(tSymtable *ptrht, tKey key);
-void symtableClearAll(tSymtable *ptrht);
-
-//SYMSTACK
-
 typedef struct tSymStackItem
 {
 	tSymtable symtable;
@@ -62,6 +54,16 @@ typedef struct
 	tSymStackItem *top;
 } tSymStack;
 
+int hashCode(tKey key);
+void symtableInit(tSymtable *ptrht);
+tSymtableItem *symtableSearch(tSymtable *ptrht, tKey key);
+tSymtableData symtableInsert(tSymtable *ptrht, tKey key);
+tSymtableData symtableRead(tSymtable *ptrht, tKey key);
+tSymtableData symtableReadStack(tSymStack *ptrht, tKey key);
+void symtableDelete(tSymtable *ptrht, tKey key);
+void symtableClearAll(tSymtable *ptrht);
+
+//SYMSTACK
 void symStackInit(tSymStack *symStack);
 void symStackDispose(tSymStack *symStack);
 unsigned symStackSize(tSymStack *symStack);

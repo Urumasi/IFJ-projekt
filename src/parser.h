@@ -36,42 +36,40 @@ typedef struct parser
     int countLeft;
     int countRight;
 
-    string str1;
-    string str2;
-
     tSymtable sGlobal;
     tSymStack sLocal;
 
-    tSymtableData *sData;
+    tSymtableData currentFunc;
+    tSymtableData currentID;
 
-} Parser;
+} * Parser;
 
-int initParser(Parser *parser);
-void deleteParser(Parser *parser);
+Parser initParser();
+void deleteParser(Parser parser);
 int parse();
 
-int package(Parser *parser);
-int prog(Parser *parser);
-int params(Parser *parser);
-int params_n(Parser *parser);
-int ret(Parser *parser);
-int ret_params(Parser *parser);
-int ret_params_n(Parser *parser);
-int type(Parser *parser);
-int body(Parser *parser);
-int body_n(Parser *parser);
-int id_n(Parser *parser);
-int for_definition(Parser *parser);
-int for_assign(Parser *parser);
-int value(Parser *parser);
-int expression_n(Parser *parser);
-int definition(Parser *parser);
-int assign(Parser *parser);
-int func(Parser *parser);
-int arg(Parser *parser);
-int term(Parser *parser);
-int term_n(Parser *parser);
-int ret_values(Parser *parser);
+int package(Parser parser);
+int prog(Parser parser);
+int params(Parser parser);
+int params_n(Parser parser);
+int ret(Parser parser);
+int ret_params(Parser parser);
+int ret_params_n(Parser parser);
+int type(Parser parser);
+int body(Parser parser);
+int body_n(Parser parser);
+int id_n(Parser parser);
+int for_definition(Parser parser);
+int for_assign(Parser parser);
+int value(Parser parser);
+int expression_n(Parser parser);
+int definition(Parser parser);
+int assign(Parser parser);
+int func(Parser parser);
+int arg(Parser parser);
+int term(Parser parser);
+int term_n(Parser parser);
+int ret_values(Parser parser);
 
 /**
  * @brief Gets new token if token isn't processed. Returns parser->returnCode code if anything fails.

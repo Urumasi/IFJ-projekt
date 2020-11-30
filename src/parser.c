@@ -21,10 +21,41 @@
 #include "error.h"
 #include "symtable.h"
 
+#define symCheckNull(data) \
+    if (data == NULL)      \
+    return ERROR_INTERNAL
+
+#define symCheckDefined(data) \
+    if (data->defined)        \
+    return ERROR_SEM
+
+#define symCheckFound(data) \
+    if (data == NULL)       \
+    return ERROR_SEM
+
+#define symInsertGlobal(key)                                     \
+    parser->currentFunc = symtableInsert(&parser->sGlobal, key); \
+    symCheckNull(parser->currentFunc);                           \
+    symCheckDefined(parser->currentFunc);                        \
+    parser->currentFunc->defined = true
+
+#define symInsertLocal(key)                                                 \
+    parser->currentID = symtableInsert(&parser->sLocal.top->symtable, key); \
+    symCheckNull(parser->currentID)
+
+#define symReadGlobal(key)                                     \
+    parser->currentFunc = symtableRead(&parser->sGlobal, key); \
+    symCheckNull(parser->currentFunc)
+
+#define symReadLocal(key)                                       \
+    parser->currentID = symtableReadStack(parser->sLocal, key); \
+    symCheckFound(parser->currentFunc)
+
 Parser parser;
 
-int initParser(Parser *parser)
+Parser initParser()
 {
+    Parser parser = malloc(sizeof(struct parser));
     parser->tokenProcessed = true;
     parser->funcInExpr = false;
     parser->countLeft = 1;
@@ -32,25 +63,16 @@ int initParser(Parser *parser)
     parser->exprType = tNONE;
     parser->exprIsBool = false;
     parser->exprBoolAllowed = false;
-    strInit(&parser->str1);
-    strInit(&parser->str2);
     symtableInit(&parser->sGlobal);
     symStackInit(&parser->sLocal);
-    parser->sData = malloc(sizeof(tSymtableData));
-    parser->sData->defined = false;
-    parser->sData->type = 0;
-    parser->sData->argumentTypes = NULL;
-    parser->sData->returnTypes = NULL;
-    return 0;
+    return parser;
 }
 
-void deleteParser(Parser *parser)
+void deleteParser(Parser parser)
 {
-    strFree(&parser->str1);
-    strFree(&parser->str2);
-    free(parser->sData);
     symtableClearAll(&parser->sGlobal);
     symStackDispose(&parser->sLocal);
+    free(parser);
 }
 
 /**
@@ -60,14 +82,15 @@ void deleteParser(Parser *parser)
  */
 int parse()
 {
-    Parser parser;
-    initParser(&parser);
-    parser.returnCode = package(&parser);
-    if (parser.returnCode == ERROR_CODE_OK)
+    Parser parser = initParser();
+    parser->returnCode = package(parser);
+    if (parser->returnCode == ERROR_CODE_OK)
     {
+        //TODO
     }
-    deleteParser(&parser);
-    return parser.returnCode;
+    int returnCode = parser->returnCode;
+    deleteParser(parser);
+    return returnCode;
 }
 
 /**
@@ -75,7 +98,7 @@ int parse()
  * 
  * @return Error code of rule 
  */
-int package(Parser *parser)
+int package(Parser parser)
 {
     getToken();
     while (isType(TOKEN_EOL))
@@ -98,23 +121,18 @@ int package(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int prog(Parser *parser)
+int prog(Parser parser)
 {
     getToken();
     // <prog> -> FUNC ID ( <params> ) <ret> { EOL <body> } EOL <prog>
     if (isKeyword(KW_FUNC))
     {
         getType(TOKEN_IDENTIFIER);
-        strClear(&parser->str1);
-        strClear(&parser->str2);
-        parser->sData->id = parser->token.attribute.string;
-        parser->sData->defined = false;
+        symInsertGlobal(parser->token.attribute.string->str);
         getType(TOKEN_LBRACKET);
         getRule(params);
-        parser->sData->argumentTypes = &parser->str1;
         getType(TOKEN_RBRACKET);
         getRule(ret);
-        parser->sData->returnTypes = &parser->str2;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -138,7 +156,7 @@ int prog(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int params(Parser *parser)
+int params(Parser parser)
 {
     getToken();
     // <params> -> ID <type> <params_n>
@@ -160,21 +178,21 @@ int params(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int type(Parser *parser)
+int type(Parser parser)
 {
     // TODO - semantic
     getToken();
     if (isKeyword(KW_INT))
     {
-        strAddChar(&parser->str1, '0');
+        strAddChar(&parser->currentFunc->argumentTypes, '0');
     }
     else if (isKeyword(KW_FLOAT64))
     {
-        strAddChar(&parser->str1, '1');
+        strAddChar(&parser->currentFunc->argumentTypes, '1');
     }
     else if (isKeyword(KW_STRING))
     {
-        strAddChar(&parser->str1, '2');
+        strAddChar(&parser->currentFunc->argumentTypes, '2');
     }
     returnRule();
 }
@@ -184,7 +202,7 @@ int type(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int params_n(Parser *parser)
+int params_n(Parser parser)
 {
     getToken();
     // <params_n> , ID <type> <params_n>
@@ -207,7 +225,7 @@ int params_n(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int ret(Parser *parser)
+int ret(Parser parser)
 {
     getToken();
     // <ret> -> ( <ret_params> )
@@ -229,7 +247,7 @@ int ret(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int ret_params(Parser *parser)
+int ret_params(Parser parser)
 {
     getToken();
     //<ret_params> -> <type> <ret_params_n>
@@ -238,15 +256,15 @@ int ret_params(Parser *parser)
     {
         if (isKeyword(KW_INT))
         {
-            strAddChar(&parser->str2, '0');
+            strAddChar(&parser->currentFunc->returnTypes, '0');
         }
         else if (isKeyword(KW_FLOAT64))
         {
-            strAddChar(&parser->str2, '1');
+            strAddChar(&parser->currentFunc->returnTypes, '1');
         }
         else if (isKeyword(KW_STRING))
         {
-            strAddChar(&parser->str2, '2');
+            strAddChar(&parser->currentFunc->returnTypes, '2');
         }
         getRule(ret_params_n);
     }
@@ -263,7 +281,7 @@ int ret_params(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int ret_params_n(Parser *parser)
+int ret_params_n(Parser parser)
 {
     getToken();
     //<ret_params_n>->, <type> <ret_params_n>
@@ -272,15 +290,15 @@ int ret_params_n(Parser *parser)
         getToken();
         if (isKeyword(KW_INT))
         {
-            strAddChar(&parser->str2, '0');
+            strAddChar(&parser->currentFunc->returnTypes, '0');
         }
         else if (isKeyword(KW_FLOAT64))
         {
-            strAddChar(&parser->str2, '1');
+            strAddChar(&parser->currentFunc->returnTypes, '1');
         }
         else if (isKeyword(KW_STRING))
         {
-            strAddChar(&parser->str2, '2');
+            strAddChar(&parser->currentFunc->returnTypes, '2');
         }
         getRule(ret_params_n);
     }
@@ -297,7 +315,7 @@ int ret_params_n(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int body(Parser *parser)
+int body(Parser parser)
 {
     getToken();
     // <body> -> FOR <for_definition> ; <expression> ; <for_assign> { EOL <body> } EOL <body>
@@ -367,7 +385,7 @@ int body(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int body_n(Parser *parser)
+int body_n(Parser parser)
 {
     getToken();
     //<body_n> -> <definition>
@@ -396,7 +414,7 @@ int body_n(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int id_n(Parser *parser)
+int id_n(Parser parser)
 {
     getToken();
     //  <id_n> -> , ID <id_n>
@@ -419,7 +437,7 @@ int id_n(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int for_definition(Parser *parser)
+int for_definition(Parser parser)
 {
     getToken();
     // <for_definition> -> ID <definition>
@@ -441,7 +459,7 @@ int for_definition(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int for_assign(Parser *parser)
+int for_assign(Parser parser)
 {
     getToken();
     // <for_assign> -> ID <assign>
@@ -463,7 +481,7 @@ int for_assign(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int value(Parser *parser)
+int value(Parser parser)
 {
     parser->countRight = 1;
     // <value> -> ID <func>
@@ -485,7 +503,7 @@ int value(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int expression_n(Parser *parser)
+int expression_n(Parser parser)
 {
     getToken();
     // <expression_n> -> , <expression> <expression_n>
@@ -508,7 +526,7 @@ int expression_n(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int definition(Parser *parser)
+int definition(Parser parser)
 {
     parser->countLeft = 1;
     // <definition> -> := <expression>
@@ -522,7 +540,7 @@ int definition(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int assign(Parser *parser)
+int assign(Parser parser)
 {
     parser->countLeft = 1;
     // <assign> -> <id_n> = <value>
@@ -540,7 +558,7 @@ int assign(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int func(Parser *parser)
+int func(Parser parser)
 {
     getToken();
     // <func> -> ( <arg> )
@@ -562,7 +580,7 @@ int func(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int arg(Parser *parser)
+int arg(Parser parser)
 {
     getToken();
     // <arg> -> <term> <term_n>
@@ -585,7 +603,7 @@ int arg(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int term(Parser *parser)
+int term(Parser parser)
 {
     // TODO - semantic
     getToken();
@@ -615,7 +633,7 @@ int term(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int term_n(Parser *parser)
+int term_n(Parser parser)
 {
     getToken();
     // <term_n> -> , <term> <term_n>
@@ -637,7 +655,7 @@ int term_n(Parser *parser)
  * 
  * @return Error code of rule 
  */
-int ret_values(Parser *parser)
+int ret_values(Parser parser)
 {
     getToken();
     //<ret_values> -> ε

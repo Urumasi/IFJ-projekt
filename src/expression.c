@@ -54,7 +54,7 @@ const char prec_table[TABLE_SIZE][TABLE_SIZE] = {
 	{'<','<','<','-','<','<','-'},	// $
 };
 
-int cleanup(Parser *parser, int error) {
+int cleanup(Parser parser, int error) {
 	stackDispose(&stack);
 	parser->tokenProcessed = false;
 	return error;
@@ -78,7 +78,7 @@ int getIndexFromSymbol(Prec_symbol symbol) {
 	}
 }
 
-int getIndexFromToken(Parser *parser) {
+int getIndexFromToken(Parser parser) {
 	if (isType(TOKEN_PLUS) || isType(TOKEN_MINUS)) {
 		return I_PLUS_MINUS;
 	}else if (isType(TOKEN_MUL) || isType(TOKEN_DIV)) {
@@ -94,7 +94,7 @@ int getIndexFromToken(Parser *parser) {
 	}else return I_DOLAR;
 }
 
-int getSymbolFromToken(Parser *parser) {	
+int getSymbolFromToken(Parser parser) {	
 	if (isType(TOKEN_PLUS)) {
 		return PLUS;
 	}else if (isType(TOKEN_MINUS)) {
@@ -185,7 +185,7 @@ int reduce() {
 	return ERROR_CODE_OK;
 }
 
-int expression(Parser  *parser) {
+int expression(Parser  parser) {
 	stackInit(&stack);
 	char index;
 	int end = 0;
