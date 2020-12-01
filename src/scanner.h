@@ -24,15 +24,15 @@
   */
 typedef enum
 {
-    KW_INT,
-    KW_FLOAT64,
-    KW_STRING,
     KW_ELSE,
+    KW_FLOAT64,
     KW_FOR,
     KW_FUNC,
     KW_IF,
+    KW_INT,
     KW_PACKAGE,
     KW_RETURN,
+    KW_STRING,
 } Keyword;
 
 /**
