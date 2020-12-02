@@ -192,6 +192,7 @@ int expression(Parser  parser) {
 	bool firstToken = true;
 	int returnCode = 0;
 	bool idFirst = false;
+	parser->funcInExpr = false;
 	parser->exprType = tNONE;
 	parser->exprIsBool = false;
 
@@ -235,7 +236,7 @@ int expression(Parser  parser) {
 				return cleanup(parser, ERROR_SEM_OTHER);
 			parser->currentID = symtableReadStack(&parser->sLocal, parser->token.attribute.string->str);
 			// not declared variable, check function call
-			if(parser->currentID == NULL)
+			if(parser->currentID == NULL && firstToken)
 			{
 				parser->funcInExpr = true;
 				return cleanup(parser, ERROR_CODE_OK);
