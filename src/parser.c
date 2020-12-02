@@ -189,8 +189,9 @@ int prog(Parser parser)
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
-        if (parser->missingReturn)
-            return ERROR_SEM_PARAM;
+        // TODO - return can be in if/else
+        // if (parser->missingReturn)
+        //     return ERROR_SEM_PARAM;
         symStackPop(&parser->sLocal);
         getRule(prog);
     }
@@ -216,6 +217,8 @@ int params(Parser parser)
     // <params> -> ID <type> <params_n>
     if (isType(TOKEN_IDENTIFIER))
     {
+        strCopyString(&parser->id, parser->token.attribute.string);
+        symInsertLocal(parser->id.str);
         parser->typeCounter = 0;
         getRule(type);
         getRule(params_n);
@@ -239,8 +242,21 @@ int type(Parser parser)
 {
     // TODO - semantic
     getToken();
-    if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
+    if (isKeyword(KW_INT))
     {
+        parser->currentID->type = tINT;
+        addType(parser->token.attribute.keyword, &parser->currentFunc->argumentTypes, parser->currentFunc, parser);
+        checkReturn();
+    }
+    else if (isKeyword(KW_FLOAT64))
+    {
+        parser->currentID->type = tFLOAT64;
+        addType(parser->token.attribute.keyword, &parser->currentFunc->argumentTypes, parser->currentFunc, parser);
+        checkReturn();
+    }
+    else if (isKeyword(KW_STRING))
+    {
+        parser->currentID->type = parser->exprType;
         addType(parser->token.attribute.keyword, &parser->currentFunc->argumentTypes, parser->currentFunc, parser);
         checkReturn();
     }
@@ -259,6 +275,8 @@ int params_n(Parser parser)
     if (isType(TOKEN_COMMA))
     {
         getType(TOKEN_IDENTIFIER);
+        strCopyString(&parser->id, parser->token.attribute.string);
+        symInsertLocal(parser->id.str);
         getRule(type);
         getRule(params_n);
     }
