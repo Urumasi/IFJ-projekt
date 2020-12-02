@@ -256,7 +256,7 @@ int type(Parser parser)
     }
     else if (isKeyword(KW_STRING))
     {
-        parser->currentID->type = parser->exprType;
+        parser->currentID->type = tSTRING;
         addType(parser->token.attribute.keyword, &parser->currentFunc->argumentTypes, parser->currentFunc, parser);
         checkReturn();
     }
