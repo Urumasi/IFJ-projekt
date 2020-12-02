@@ -33,6 +33,18 @@ int addBuiltinFunc(char *key, char *argumentTypes, char *returnTypes, Parser par
         strAddChar(&parser->currentFunc->returnTypes, returnTypes[i]);
 }
 
+DataType keywordToType(Keyword keyword)
+{
+    if (keyword == KW_INT)
+        return tINT;
+    else if (keyword == KW_FLOAT64)
+        return tFLOAT64;
+    else if (keyword == KW_STRING)
+        return tSTRING;
+    else
+        return tNONE;
+}
+
 char typeToChar(DataType type)
 {
     if (type == tINT)
@@ -59,15 +71,8 @@ bool compareTypes(string typesLeft, string typesRight)
     return true;
 }
 
-void addType(Keyword keyword, string *typesList, tSymtableData data, Parser parser)
+void addType(char type, string *typesList, tSymtableData data, Parser parser)
 {
-    char type;
-    if (keyword == KW_INT)
-        type = '0';
-    if (keyword == KW_FLOAT64)
-        type = '1';
-    if (keyword == KW_STRING)
-        type = '2';
     if (data->typesSet)
     {
         if (parser->typeCounter >= typesList->length)
@@ -191,8 +196,9 @@ int prog(Parser parser)
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
-        if (parser->missingReturn)
-            return ERROR_SEM_PARAM;
+        // TODO - return can be in if/else
+        // if (parser->missingReturn)
+        //     return ERROR_SEM_PARAM;
         symStackPop(&parser->sLocal);
         generate_code(func_end);
         getRule(prog);
@@ -219,6 +225,8 @@ int params(Parser parser)
     // <params> -> ID <type> <params_n>
     if (isType(TOKEN_IDENTIFIER))
     {
+        strCopyString(&parser->id, parser->token.attribute.string);
+        symInsertLocal(parser->id.str);
         parser->typeCounter = 0;
         getRule(type);
         getRule(params_n);
@@ -244,7 +252,8 @@ int type(Parser parser)
     getToken();
     if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
     {
-        addType(parser->token.attribute.keyword, &parser->currentFunc->argumentTypes, parser->currentFunc, parser);
+        parser->currentID->type = keywordToType(parser->token.attribute.keyword);
+        addType(typeToChar(parser->currentID->type), &parser->currentFunc->argumentTypes, parser->currentFunc, parser);
         checkReturn();
     }
     returnRule();
@@ -262,6 +271,8 @@ int params_n(Parser parser)
     if (isType(TOKEN_COMMA))
     {
         getType(TOKEN_IDENTIFIER);
+        strCopyString(&parser->id, parser->token.attribute.string);
+        symInsertLocal(parser->id.str);
         getRule(type);
         getRule(params_n);
     }
@@ -309,11 +320,8 @@ int ret_params(Parser parser)
     if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
     {
         parser->typeCounter = 0;
-        if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
-        {
-            addType(parser->token.attribute.keyword, &parser->currentFunc->returnTypes, parser->currentFunc, parser);
-            checkReturn();
-        }
+        addType(typeToChar(keywordToType(parser->token.attribute.keyword)), &parser->currentFunc->returnTypes, parser->currentFunc, parser);
+        checkReturn();
         getRule(ret_params_n);
         if (parser->typeCounter != parser->currentFunc->returnTypes.length)
             return ERROR_SEM_PARAM;
@@ -341,7 +349,7 @@ int ret_params_n(Parser parser)
         getToken();
         if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
         {
-            addType(parser->token.attribute.keyword, &parser->currentFunc->returnTypes, parser->currentFunc, parser);
+            addType(typeToChar(keywordToType(parser->token.attribute.keyword)), &parser->currentFunc->returnTypes, parser->currentFunc, parser);
             checkReturn();
         }
         getRule(ret_params_n);
