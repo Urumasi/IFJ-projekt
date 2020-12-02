@@ -23,6 +23,41 @@
 
 Parser parser;
 
+int addBuiltinFunc(char *key, char *argumentTypes, char *returnTypes, Parser parser)
+{
+    symInsertGlobal(key);
+    for (int i = 0; i < strlen(argumentTypes); i++)
+        strAddChar(&parser->currentFunc->argumentTypes, argumentTypes[i]);
+    for (int i = 0; i < strlen(returnTypes); i++)
+        strAddChar(&parser->currentFunc->returnTypes, argumentTypes[i]);
+}
+
+char typeToChar(DataType type)
+{
+    if (type == tINT)
+        return '0';
+    else if (type == tFLOAT64)
+        return '1';
+    else if (type == tSTRING)
+        return '2';
+    else
+        return '3';
+}
+
+int compareTypes(string typesLeft, string typesRight)
+{
+    if (typesLeft.length != typesRight.length)
+        return ERROR_SEM_OTHER;
+    for (int i = 0; i < typesLeft.length; i++)
+    {
+        if (typesLeft.str[i] == '3')
+            continue;
+        else if (typesLeft.str[i] != typesRight.str[i])
+            return ERROR_SEM_OTHER;
+    }
+    return ERROR_CODE_OK;
+}
+
 void addType(Keyword keyword, string *typesList, tSymtableData data, Parser parser)
 {
     char type;
@@ -48,19 +83,32 @@ Parser initParser()
 {
     Parser parser = malloc(sizeof(struct parser));
     strInit(&parser->id);
+    strInit(&parser->typesLeft);
+    strInit(&parser->typesRight);
     parser->tokenProcessed = true;
     parser->funcInExpr = false;
     parser->exprType = tNONE;
     parser->exprIsBool = false;
     parser->exprBoolAllowed = false;
+    parser->idType = tNONE;
+    parser->exprType = tNONE;
     symtableInit(&parser->sGlobal);
     symStackInit(&parser->sLocal);
+    addBuiltinFunc("int2float", "0", "1", parser);
+    addBuiltinFunc("float2int", "1", "0", parser);
+    addBuiltinFunc("len", "2", "0", parser);
+    addBuiltinFunc("substr", "200", "20", parser);
+    addBuiltinFunc("ord", "20", "00", parser);
+    addBuiltinFunc("chr", "0", "20", parser);
+
     return parser;
 }
 
 void deleteParser(Parser parser)
 {
     strFree(&parser->id);
+    strFree(&parser->typesLeft);
+    strFree(&parser->typesRight);
     symtableClearAll(&parser->sGlobal);
     symStackDispose(&parser->sLocal);
     free(parser);
@@ -300,6 +348,8 @@ int ret_params_n(Parser parser)
  */
 int body(Parser parser)
 {
+    strClear(&parser->typesLeft);
+    strClear(&parser->typesRight);
     getToken();
     // <body> -> FOR <for_definition> ; <expression> ; <for_assign> { EOL <body> } EOL <body>
     if (isKeyword(KW_FOR))
@@ -418,7 +468,15 @@ int id_n(Parser parser)
         getType(TOKEN_IDENTIFIER);
         strCopyString(&parser->id, parser->token.attribute.string);
         if (strCmpConstStr(&parser->id, "_") != 0)
+        {
             symReadLocal(parser->id.str);
+            parser->idType = parser->currentID->type;
+        }
+        else
+        {
+            parser->idType = tNONE;
+        }
+        strAddChar(&parser->typesLeft, typeToChar(parser->idType));
         getRule(id_n);
     }
     //  <id_n> -> ε
@@ -482,6 +540,7 @@ int value(Parser parser)
 {
     // <value> -> ID <func>
     getRule(expression);
+    strAddChar(&parser->typesRight, typeToChar(parser->exprType));
     if (parser->funcInExpr)
     {
         getType(TOKEN_IDENTIFIER);
@@ -507,6 +566,7 @@ int expression_n(Parser parser)
     if (isType(TOKEN_COMMA))
     {
         getRule(expression);
+        strAddChar(&parser->typesRight, typeToChar(parser->exprType));
         getRule(expression_n);
     }
     // <expression_n> -> ε
@@ -540,11 +600,21 @@ int definition(Parser parser)
 int assign(Parser parser)
 {
     if (strCmpConstStr(&parser->id, "_") != 0)
+    {
         symReadLocal(parser->id.str);
+        parser->idType = parser->currentID->type;
+    }
+    else
+    {
+        parser->idType = tNONE;
+    }
+    strAddChar(&parser->typesLeft, typeToChar(parser->idType));
     // <assign> -> <id_n> = <value>
     getRule(id_n);
     getType(TOKEN_ASSIGN);
     getRule(value);
+    parser->returnCode = compareTypes(parser->typesLeft, parser->typesRight);
+    checkReturn();
     return ERROR_CODE_OK;
 }
 

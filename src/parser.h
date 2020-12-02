@@ -32,6 +32,7 @@ typedef struct parser
     bool missingReturn;
     bool funcInExpr;
     DataType exprType;
+    DataType idType;
     bool exprIsBool;
     bool exprBoolAllowed;
 
@@ -41,6 +42,9 @@ typedef struct parser
     int typeCounter;
     tSymtableData currentFunc;
     tSymtableData currentID;
+    tSymtableData calledFunc;
+    string typesLeft;
+    string typesRight;
 
 } * Parser;
 
