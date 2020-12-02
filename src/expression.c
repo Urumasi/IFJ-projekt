@@ -19,6 +19,7 @@
 #include "expression.h"
 #include "stack.h"
 #include "error.h"
+#include "generator.h"
 
 #define TABLE_SIZE 8
 
@@ -138,8 +139,10 @@ int checkRule(int count){
 	}else if (count == 3) {
 		if (stack.top->data == NON_TERM && stack.top->next->next->data == NON_TERM) {
 			if (stack.top->next->data >= PLUS && stack.top->next->data <= DIVIDE) {
+				generate_operation(stack.top->next->data);
 				return ERROR_CODE_OK;
 			}else if (stack.top->next->data >= LESSER && stack.top->next->data <= NOT_EQUAL){
+				generate_operation(stack.top->next->data);
 				return ERROR_CODE_OK;
 			}
 		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){
@@ -266,6 +269,7 @@ int expression(Parser  parser) {
 				getToken();
 				break;
 			case '<':
+				generate_code(push);
 				if (stackInsertAfterTerm(&stack, HANDLE)) {
 					return cleanup(parser, ERROR_INTERNAL);
 				}

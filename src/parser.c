@@ -20,6 +20,7 @@
 #include "expression.h"
 #include "error.h"
 #include "symtable.h"
+#include "generator.h"
 
 #define symCheckNull(data) \
     if (data == NULL)      \
@@ -129,6 +130,7 @@ int prog(Parser parser)
     {
         getType(TOKEN_IDENTIFIER);
         symInsertGlobal(parser->token.attribute.string->str);
+        generate_code(func);
         getType(TOKEN_LBRACKET);
         getRule(params);
         getType(TOKEN_RBRACKET);
@@ -138,6 +140,7 @@ int prog(Parser parser)
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_code(func_end);
         getRule(prog);
     }
     //<prog> -> EOF
@@ -358,6 +361,7 @@ int body(Parser parser)
     {
         getRule(ret_values);
         getType(TOKEN_EOL);
+        generate_code(return);
         getRule(body);
     }
     // <body> -> ID <body_n> EOL <body>
@@ -403,6 +407,7 @@ int body_n(Parser parser)
     //<body_n>-> ( <arg> )
     else if (isType(TOKEN_LBRACKET))
     {
+        printf("FUNCTIONCALL\n");
         getRule(arg);
         getType(TOKEN_RBRACKET);
     }
@@ -488,6 +493,7 @@ int value(Parser parser)
     getRule(expression);
     if (parser->funcInExpr)
     {
+        generate_code(func_call);
         getRule(func);
     }
     // <value> -> <expression> <expression_n>

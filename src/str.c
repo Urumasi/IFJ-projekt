@@ -24,6 +24,25 @@ int strInit(string *s)
    return STR_SUCCESS;
 }
 
+int strInitCopy(string *s1, string *s2)
+// kopirovaci konstruktor
+{
+   return strInitFromConst(s1, s2->str);
+}
+
+int strInitFromConst(string *s1, const char *s2)
+// funkce vytvori novy retezec s obsahem s2
+{
+   if(!s2)
+      return STR_ERROR;
+   if ((s1->str = (char*) malloc(strlen(s2)+1)) == NULL)
+      return STR_ERROR;
+   strcpy(s1->str, s2);
+   s1->length = strlen(s2);
+   s1->allocSize = s1->length + 1;
+   return STR_SUCCESS;
+}
+
 void strFree(string *s)
 // funkce uvolni retezec z pameti
 {
@@ -65,6 +84,22 @@ int strCopyString(string *s1, string *s2)
       s1->allocSize = newLength + 1;
    }
    strcpy(s1->str, s2->str);
+   s1->length = newLength;
+   return STR_SUCCESS;
+}
+
+int strConcatString(string *s1, string *s2)
+// prida retezec s2 za retezec s1
+{
+   int newLength = s1->length + s2->length;
+   if (newLength >= s1->allocSize)
+   {
+      // pamet nestaci, je potreba provest realokaci
+      if ((s1->str = (char*) realloc(s1->str, newLength + 1)) == NULL)
+         return STR_ERROR;
+      s1->allocSize = newLength + 1;
+   }
+   strcat(s1->str, s2->str);
    s1->length = newLength;
    return STR_SUCCESS;
 }

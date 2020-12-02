@@ -5,7 +5,7 @@ SRC_DIR = src
 OBJ_DIR = obj
 
 TARGET = ifj20
-MODULES = main scanner parser expression str stack symtable
+MODULES = main scanner parser expression str stack symtable generator taclist
 SOURCES = $(MODULES:%=$(SRC_DIR)/%.c)
 OBJS = $(MODULES:%=$(OBJ_DIR)/%.o)
 
@@ -19,7 +19,6 @@ $(TARGET): $(OBJS) $(SRC_DIR)/symtable.h
 clean: $(SRC_DIR)
 	$(RM) -r $(OBJ_DIR)
 	$(RM) $(TARGET)
-	cd $(SRC_DIR) && $(MAKE) clean
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	@mkdir -p $(@D)
