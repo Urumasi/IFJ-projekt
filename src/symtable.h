@@ -13,7 +13,8 @@ typedef enum
 	tINT,
 	tFLOAT64,
 	tSTRING,
-	tNONE
+	tNONE,
+	tMULTIPLE
 } DataType;
 
 typedef char *tKey;

@@ -52,12 +52,16 @@ char typeToChar(DataType type)
         return '1';
     else if (type == tSTRING)
         return '2';
-    else
+    else if (type == tNONE)
         return '3';
+    else if (type == tMULTIPLE)
+        return '4';
 }
 
 bool compareTypes(string typesLeft, string typesRight)
 {
+    if (typesLeft.str[0] == typeToChar(tMULTIPLE))
+        return true;
     if (typesLeft.length != typesRight.length)
         return false;
     for (int i = 0; i < typesLeft.length; i++)
@@ -102,6 +106,7 @@ Parser initParser()
     parser->exprType = tNONE;
     symtableInit(&parser->sGlobal);
     symStackInit(&parser->sLocal);
+    addBuiltinFunc("print", "4", "", parser);
     addBuiltinFunc("inputs", "", "20", parser);
     addBuiltinFunc("inputi", "", "00", parser);
     addBuiltinFunc("inputf", "", "10", parser);
