@@ -224,14 +224,16 @@ int checkSemantic(bool firstToken, bool *divide, Parser parser)
 			return ERROR_SEM_OTHER;
 		parser->currentID = symtableReadStack(&parser->sLocal, parser->token.attribute.string->str);
 		// not declared variable, check function call
-		if (parser->currentID == NULL && firstToken)
-		{
-			parser->funcInExpr = true;
-			return ERROR_CODE_OK;
-		}
-		parser->currentID = symtableReadStack(&parser->sLocal, parser->token.attribute.string->str);
 		if (parser->currentID == NULL)
-			return ERROR_SEM;
+		{
+			if (firstToken)
+			{
+				parser->funcInExpr = true;
+				return ERROR_CODE_OK;
+			}
+			else
+				return ERROR_SEM;			
+		}			
 		else
 		{
 			if (parser->exprType == tNONE)
