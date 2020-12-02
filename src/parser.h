@@ -48,7 +48,7 @@ typedef struct parser
 
 } * Parser;
 
-void addType(Keyword keyword, string *typesList, tSymtableData data, Parser parser);
+void addType(char type, string *typesList, tSymtableData data, Parser parser);
 Parser initParser();
 void deleteParser(Parser parser);
 int parse();
