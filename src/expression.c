@@ -130,7 +130,7 @@ int getSymbolFromToken(Parser parser) {
 	}else return DOLAR;
 }
 
-int checkRule(int count){
+int checkRule(int count, Parser parser){
 	if (count == 1) {
 		if (stack.top->data == ID || stack.top->data == INT || stack.top->data == FLOAT || stack.top->data == STRING) {
 			return ERROR_CODE_OK;
@@ -140,6 +140,9 @@ int checkRule(int count){
 			if (stack.top->next->data >= PLUS && stack.top->next->data <= DIVIDE) {
 				return ERROR_CODE_OK;
 			}else if (stack.top->next->data >= LESSER && stack.top->next->data <= NOT_EQUAL){
+				if(parser->exprIsBool)
+					return ERROR_SEM_COMP;
+				parser->exprIsBool = true;
 				return ERROR_CODE_OK;
 			}
 		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){
@@ -162,18 +165,20 @@ void printStack(){
 	printf("--------------------------\n");
 }
 
-int reduce() {
+int reduce(Parser parser) {
 	tItemPtr *tmp = stackTop(&stack);;
 	int count = 0;
+	int returnValue = 0;
 	while (tmp != NULL) {
 		if (tmp->data != HANDLE){
 			count++;
 		}else break;
 		tmp = tmp->next;
 	}
-		
-	if (checkRule(count)){
-		return ERROR_SYN;
+	returnValue = checkRule(count, parser); 
+	if (returnValue)
+	{
+		return returnValue;
 	}
 	for (int i = 0; i < count+1; i++) {
 		stackPop(&stack);
@@ -185,7 +190,7 @@ int reduce() {
 	return ERROR_CODE_OK;
 }
 
-int checkSemantic(bool firstToken, Parser parser)
+int checkSemantic(bool firstToken, bool *divide, Parser parser)
 {
 	if (isType(TOKEN_INT))
 	{
@@ -237,12 +242,22 @@ int checkSemantic(bool firstToken, Parser parser)
 	}
 	if (parser->token.type >= TOKEN_EQ && parser->token.type <= TOKEN_GT)
 	{
-		parser->exprIsBool = true;
 		if (!parser->exprBoolAllowed)
 			return ERROR_SEM_COMP;
 	}
 	if (parser->exprType == tSTRING && parser->token.type >= TOKEN_MINUS && parser->token.type <= TOKEN_DIV)
 		return ERROR_SEM_COMP;
+	if(isType(TOKEN_DIV))
+		*divide = true;
+	else if(!isType(TOKEN_INT))
+		*divide = false;
+	if(*divide && isType(TOKEN_INT))
+	{
+		if(parser->token.attribute.integer == 0)
+			return ERROR_DIV_ZERO;
+		else
+			*divide = false;
+	}
 	return ERROR_CODE_OK;
 }
 
@@ -253,6 +268,7 @@ int expression(Parser  parser) {
 	bool firstToken = true;
 	int returnCode = 0;
 	bool idFirst = false;
+	bool divide = false;
 	parser->funcInExpr = false;
 	parser->exprType = tNONE;
 	parser->exprIsBool = false;
@@ -269,7 +285,7 @@ int expression(Parser  parser) {
 	while(!end) {
 		if(!semanticCode)
 		{
-			semanticCode = checkSemantic(firstToken, parser);
+			semanticCode = checkSemantic(firstToken, &divide, parser);
 			if(parser->funcInExpr)
 				return cleanup(parser, ERROR_CODE_OK);
 		}
@@ -296,11 +312,9 @@ int expression(Parser  parser) {
 				getToken();
 				break;
 			case '>':
-				returnCode = reduce();
-				if(returnCode == ERROR_SYN) {
-    				return cleanup(parser, ERROR_SYN);
-				}else if (returnCode == ERROR_INTERNAL) {
-					return cleanup(parser, ERROR_INTERNAL);
+				returnCode = reduce(parser);
+				if(returnCode) {
+    				return cleanup(parser, returnCode);
 				}
 				break;
 			default:
