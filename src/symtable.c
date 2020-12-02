@@ -1,6 +1,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdbool.h>
 #include "symtable.h"
 #include "error.h"
 
@@ -58,7 +59,6 @@ tSymtableData symtableInsert(tSymtable *ptrht, tKey key)
                 {
                     newItem->data->defined = false;
                     newItem->data->typesSet = false;
-                    strInit(&newItem->data->id);
                     strInit(&newItem->data->argumentTypes);
                     strInit(&newItem->data->returnTypes);
                     (*ptrht)[hashCode(key)] = newItem;
@@ -102,7 +102,6 @@ void symtableClearAll(tSymtable *ptrht)
         {
             tSymtableItem *prevItem = item;
             item = item->ptrnext;
-            strFree(&prevItem->data->id);
             strFree(&prevItem->data->argumentTypes);
             strFree(&prevItem->data->returnTypes);
             free(prevItem->key);
@@ -118,6 +117,7 @@ void symtableClearAll(tSymtable *ptrht)
 void symStackInit(tSymStack *symStack)
 {
     symStack->top = NULL;
+    symStack->scopeCount = 0;
 }
 
 void symStackDispose(tSymStack *symStack)
@@ -140,6 +140,8 @@ bool symStackPush(tSymStack *stack)
     symtableInit(&item->symtable);
     item->next = stack->top;
     stack->top = item;
+    stack->scopeCount++;
+    tSymStackItem *i = stack->top;
     return true;
 }
 
@@ -150,6 +152,7 @@ bool symStackPop(tSymStack *stack)
         return false;
     item = stack->top;
     stack->top = item->next;
+    stack->scopeCount--;
     symtableClearAll(&item->symtable);
     free(item);
 

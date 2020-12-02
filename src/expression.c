@@ -192,9 +192,10 @@ int expression(Parser  parser) {
 	stackInit(&stack);
 	char index;
 	int end = 0;
-	int tokenCount = 0;
+	bool firstToken = true;
 	int returnCode = 0;
 	bool idFirst = false;
+	parser->funcInExpr = false;
 	parser->exprType = tNONE;
 	parser->exprIsBool = false;
 
@@ -207,15 +208,6 @@ int expression(Parser  parser) {
 	getToken(); 
 
 	while(!end) {
-		tokenCount++;
-		//function check
-		if (tokenCount == 1 && isType(TOKEN_IDENTIFIER)) {
-			idFirst = true;
-		}else if (tokenCount == 2 && idFirst && isType(TOKEN_LBRACKET)) {
-			parser->funcInExpr = true;
-			return cleanup(parser, ERROR_CODE_OK);
-		}
-
 		// type check
 		if(isType(TOKEN_INT))
 		{
@@ -238,13 +230,25 @@ int expression(Parser  parser) {
 			if (parser->exprType == tNONE)
 				parser->exprType = tSTRING;
 			else if (parser->exprType != tSTRING)
-				return cleanup(parser, ERROR_SEM_COMP);
+				return cleanup(parser, ERROR_SEM_COMP);			
 		}
 		else if(isType(TOKEN_IDENTIFIER))
 		{
 			// TODO - id type (symtable)
 			if(!strCmpConstStr(parser->token.attribute.string, "_"))
 				return cleanup(parser, ERROR_SEM_OTHER);
+			parser->currentID = symtableReadStack(&parser->sLocal, parser->token.attribute.string->str);
+			// not declared variable, check function call
+			if(parser->currentID == NULL && firstToken)
+			{
+				parser->funcInExpr = true;
+				return cleanup(parser, ERROR_CODE_OK);
+			}
+			symReadLocal(parser->token.attribute.string->str);
+			if (parser->exprType == tNONE)
+				parser->exprType = parser->currentID->type;
+			else if (parser->exprType != parser->currentID->type)
+				return cleanup(parser, ERROR_SEM_COMP);
 		}
 		if (parser->token.type >= TOKEN_EQ && parser->token.type <= TOKEN_GT)
 		{
@@ -291,7 +295,8 @@ int expression(Parser  parser) {
 					end = 1;
 					break;
 				}else return cleanup(parser, ERROR_SYN);
-		}		
+		}
+		firstToken = false;		
 	}
 
 	if (!(stack.top->data == NON_TERM && stack.top->next->data == DOLAR)) {

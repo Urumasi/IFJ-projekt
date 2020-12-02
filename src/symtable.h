@@ -20,8 +20,6 @@ typedef char *tKey;
 
 typedef struct tSymtableData
 {
-	string id;
-
 	//func
 	bool defined;
 	bool typesSet;
@@ -52,6 +50,7 @@ typedef struct tSymStackItem
 typedef struct
 {
 	tSymStackItem *top;
+	int scopeCount;
 } tSymStack;
 
 int hashCode(tKey key);

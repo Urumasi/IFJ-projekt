@@ -22,55 +22,100 @@
 #include "symtable.h"
 #include "generator.h"
 
-#define symCheckNull(data) \
-    if (data == NULL)      \
-    return ERROR_INTERNAL
-
-#define symCheckDefined(data) \
-    if (data->defined)        \
-    return ERROR_SEM
-
-#define symCheckFound(data) \
-    if (data == NULL)       \
-    return ERROR_SEM
-
-#define symInsertGlobal(key)                                     \
-    parser->currentFunc = symtableInsert(&parser->sGlobal, key); \
-    symCheckNull(parser->currentFunc);                           \
-    symCheckDefined(parser->currentFunc);                        \
-    parser->currentFunc->defined = true
-
-#define symInsertLocal(key)                                                 \
-    parser->currentID = symtableInsert(&parser->sLocal.top->symtable, key); \
-    symCheckNull(parser->currentID)
-
-#define symReadGlobal(key)                                     \
-    parser->currentFunc = symtableRead(&parser->sGlobal, key); \
-    symCheckNull(parser->currentFunc)
-
-#define symReadLocal(key)                                       \
-    parser->currentID = symtableReadStack(parser->sLocal, key); \
-    symCheckFound(parser->currentFunc)
-
 Parser parser;
+
+int addBuiltinFunc(char *key, char *argumentTypes, char *returnTypes, Parser parser)
+{
+    symInsertGlobal(key);
+    for (int i = 0; i < strlen(argumentTypes); i++)
+        strAddChar(&parser->currentFunc->argumentTypes, argumentTypes[i]);
+    for (int i = 0; i < strlen(returnTypes); i++)
+        strAddChar(&parser->currentFunc->returnTypes, returnTypes[i]);
+}
+
+char typeToChar(DataType type)
+{
+    if (type == tINT)
+        return '0';
+    else if (type == tFLOAT64)
+        return '1';
+    else if (type == tSTRING)
+        return '2';
+    else
+        return '3';
+}
+
+bool compareTypes(string typesLeft, string typesRight)
+{
+    if (typesLeft.length != typesRight.length)
+        return false;
+    for (int i = 0; i < typesLeft.length; i++)
+    {
+        if (typesLeft.str[i] == '3')
+            continue;
+        else if (typesLeft.str[i] != typesRight.str[i])
+            return false;
+    }
+    return true;
+}
+
+void addType(Keyword keyword, string *typesList, tSymtableData data, Parser parser)
+{
+    char type;
+    if (keyword == KW_INT)
+        type = '0';
+    if (keyword == KW_FLOAT64)
+        type = '1';
+    if (keyword == KW_STRING)
+        type = '2';
+    if (data->typesSet)
+    {
+        if (parser->typeCounter >= typesList->length)
+            parser->returnCode = ERROR_SEM_PARAM;
+        if (typesList->str[parser->typeCounter] != type)
+            parser->returnCode = ERROR_SEM_PARAM;
+    }
+    else
+    {
+        strAddChar(typesList, type);
+        parser->returnCode = ERROR_CODE_OK;
+    }
+    parser->typeCounter++;
+}
 
 Parser initParser()
 {
     Parser parser = malloc(sizeof(struct parser));
+    strInit(&parser->id);
+    strInit(&parser->typesLeft);
+    strInit(&parser->typesRight);
     parser->tokenProcessed = true;
     parser->funcInExpr = false;
-    parser->countLeft = 1;
-    parser->countRight = 1;
     parser->exprType = tNONE;
     parser->exprIsBool = false;
     parser->exprBoolAllowed = false;
+    parser->idType = tNONE;
+    parser->exprType = tNONE;
     symtableInit(&parser->sGlobal);
     symStackInit(&parser->sLocal);
+    addBuiltinFunc("inputs", "", "20", parser);
+    addBuiltinFunc("inputi", "", "00", parser);
+    addBuiltinFunc("inputf", "", "10", parser);
+    addBuiltinFunc("int2float", "0", "1", parser);
+    addBuiltinFunc("float2int", "1", "0", parser);
+    addBuiltinFunc("len", "2", "0", parser);
+    addBuiltinFunc("substr", "200", "20", parser);
+    addBuiltinFunc("ord", "20", "00", parser);
+    addBuiltinFunc("chr", "0", "20", parser);
+
     return parser;
 }
 
 void deleteParser(Parser parser)
 {
+    strFree(&parser->id);
+    strFree(&parser->typesLeft);
+    strFree(&parser->typesRight);
     symtableClearAll(&parser->sGlobal);
     symStackDispose(&parser->sLocal);
     free(parser);
@@ -87,7 +132,11 @@ int parse()
     parser->returnCode = package(parser);
     if (parser->returnCode == ERROR_CODE_OK)
     {
-        //TODO
+        symReadGlobal("main");
+        if (parser->currentFunc->argumentTypes.length != 0 || parser->currentFunc->returnTypes.length != 0)
+        {
+            parser->returnCode = ERROR_SEM_PARAM;
+        }
     }
     int returnCode = parser->returnCode;
     deleteParser(parser);
@@ -128,6 +177,7 @@ int prog(Parser parser)
     // <prog> -> FUNC ID ( <params> ) <ret> { EOL <body> } EOL <prog>
     if (isKeyword(KW_FUNC))
     {
+        symStackPush(&parser->sLocal);
         getType(TOKEN_IDENTIFIER);
         symInsertGlobal(parser->token.attribute.string->str);
         generate_code(func);
@@ -135,11 +185,15 @@ int prog(Parser parser)
         getRule(params);
         getType(TOKEN_RBRACKET);
         getRule(ret);
+        parser->currentFunc->typesSet = true;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
+        if (parser->missingReturn)
+            return ERROR_SEM_PARAM;
+        symStackPop(&parser->sLocal);
         generate_code(func_end);
         getRule(prog);
     }
@@ -165,8 +219,11 @@ int params(Parser parser)
     // <params> -> ID <type> <params_n>
     if (isType(TOKEN_IDENTIFIER))
     {
+        parser->typeCounter = 0;
         getRule(type);
         getRule(params_n);
+        if (parser->typeCounter != parser->currentFunc->argumentTypes.length)
+            return ERROR_SEM_PARAM;
     }
     // <params> -> ε
     else if (isType(TOKEN_RBRACKET))
@@ -185,17 +242,10 @@ int type(Parser parser)
 {
     // TODO - semantic
     getToken();
-    if (isKeyword(KW_INT))
+    if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
     {
-        strAddChar(&parser->currentFunc->argumentTypes, '0');
-    }
-    else if (isKeyword(KW_FLOAT64))
-    {
-        strAddChar(&parser->currentFunc->argumentTypes, '1');
-    }
-    else if (isKeyword(KW_STRING))
-    {
-        strAddChar(&parser->currentFunc->argumentTypes, '2');
+        addType(parser->token.attribute.keyword, &parser->currentFunc->argumentTypes, parser->currentFunc, parser);
+        checkReturn();
     }
     returnRule();
 }
@@ -230,6 +280,7 @@ int params_n(Parser parser)
  */
 int ret(Parser parser)
 {
+    parser->missingReturn = true;
     getToken();
     // <ret> -> ( <ret_params> )
     if (isType(TOKEN_LBRACKET))
@@ -240,6 +291,7 @@ int ret(Parser parser)
     // <ret> -> ε
     else if (isType(TOKEN_LCURLYBRACKET))
     {
+        parser->missingReturn = false;
         parser->tokenProcessed = false;
     }
     returnRule();
@@ -254,26 +306,22 @@ int ret_params(Parser parser)
 {
     getToken();
     //<ret_params> -> <type> <ret_params_n>
-
     if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
     {
-        if (isKeyword(KW_INT))
+        parser->typeCounter = 0;
+        if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
         {
-            strAddChar(&parser->currentFunc->returnTypes, '0');
-        }
-        else if (isKeyword(KW_FLOAT64))
-        {
-            strAddChar(&parser->currentFunc->returnTypes, '1');
-        }
-        else if (isKeyword(KW_STRING))
-        {
-            strAddChar(&parser->currentFunc->returnTypes, '2');
+            addType(parser->token.attribute.keyword, &parser->currentFunc->returnTypes, parser->currentFunc, parser);
+            checkReturn();
         }
         getRule(ret_params_n);
+        if (parser->typeCounter != parser->currentFunc->returnTypes.length)
+            return ERROR_SEM_PARAM;
     }
     //<ret_params>->ε
     else if (isType(TOKEN_RBRACKET))
     {
+        parser->missingReturn = false;
         parser->tokenProcessed = false;
     }
     returnRule();
@@ -291,17 +339,10 @@ int ret_params_n(Parser parser)
     if (isType(TOKEN_COMMA))
     {
         getToken();
-        if (isKeyword(KW_INT))
+        if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
         {
-            strAddChar(&parser->currentFunc->returnTypes, '0');
-        }
-        else if (isKeyword(KW_FLOAT64))
-        {
-            strAddChar(&parser->currentFunc->returnTypes, '1');
-        }
-        else if (isKeyword(KW_STRING))
-        {
-            strAddChar(&parser->currentFunc->returnTypes, '2');
+            addType(parser->token.attribute.keyword, &parser->currentFunc->returnTypes, parser->currentFunc, parser);
+            checkReturn();
         }
         getRule(ret_params_n);
     }
@@ -320,10 +361,13 @@ int ret_params_n(Parser parser)
  */
 int body(Parser parser)
 {
+    strClear(&parser->typesLeft);
+    strClear(&parser->typesRight);
     getToken();
     // <body> -> FOR <for_definition> ; <expression> ; <for_assign> { EOL <body> } EOL <body>
     if (isKeyword(KW_FOR))
     {
+        symStackPush(&parser->sLocal);
         getRule(for_definition);
         getType(TOKEN_SEMICOLON);
         parser->exprBoolAllowed = true;
@@ -333,9 +377,12 @@ int body(Parser parser)
         getRule(for_assign);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        symStackPush(&parser->sLocal);
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
+        symStackPop(&parser->sLocal);
+        symStackPop(&parser->sLocal);
         getRule(body);
     }
     // <body> -> IF <expression> { EOL <body> } ELSE { EOL <body> } EOL <body>
@@ -346,12 +393,16 @@ int body(Parser parser)
         parser->exprBoolAllowed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        symStackPush(&parser->sLocal);
         getRule(body);
+        symStackPop(&parser->sLocal);
         getType(TOKEN_RCURLYBRACKET);
         getKeyword(KW_ELSE);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        symStackPush(&parser->sLocal);
         getRule(body);
+        symStackPop(&parser->sLocal);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -359,7 +410,12 @@ int body(Parser parser)
     // <body> -> RETURN <ret_values> EOL <body>
     else if (isKeyword(KW_RETURN))
     {
+        if (parser->sLocal.scopeCount == 1)
+            parser->missingReturn = false;
+        parser->typeCounter = 0;
         getRule(ret_values);
+        if (!compareTypes(parser->typesRight, parser->currentFunc->returnTypes))
+            return ERROR_SEM_PARAM;
         getType(TOKEN_EOL);
         generate_code(return);
         getRule(body);
@@ -367,6 +423,7 @@ int body(Parser parser)
     // <body> -> ID <body_n> EOL <body>
     else if (isType(TOKEN_IDENTIFIER))
     {
+        strCopyString(&parser->id, parser->token.attribute.string);
         getRule(body_n);
         getType(TOKEN_EOL);
         getRule(body);
@@ -408,8 +465,8 @@ int body_n(Parser parser)
     else if (isType(TOKEN_LBRACKET))
     {
         printf("FUNCTIONCALL\n");
-        getRule(arg);
-        getType(TOKEN_RBRACKET);
+        parser->tokenProcessed = false;
+        getRule(func);
     }
     returnRule();
 }
@@ -425,8 +482,18 @@ int id_n(Parser parser)
     //  <id_n> -> , ID <id_n>
     if (isType(TOKEN_COMMA))
     {
-        parser->countLeft++;
         getType(TOKEN_IDENTIFIER);
+        strCopyString(&parser->id, parser->token.attribute.string);
+        if (strCmpConstStr(&parser->id, "_") != 0)
+        {
+            symReadLocal(parser->id.str);
+            parser->idType = parser->currentID->type;
+        }
+        else
+        {
+            parser->idType = tNONE;
+        }
+        strAddChar(&parser->typesLeft, typeToChar(parser->idType));
         getRule(id_n);
     }
     //  <id_n> -> ε
@@ -448,7 +515,7 @@ int for_definition(Parser parser)
     // <for_definition> -> ID <definition>
     if (isType(TOKEN_IDENTIFIER))
     {
-        parser->countLeft = 1;
+        strCopyString(&parser->id, parser->token.attribute.string);
         getRule(definition);
     }
     // <for_definition> -> ε
@@ -470,7 +537,7 @@ int for_assign(Parser parser)
     // <for_assign> -> ID <assign>
     if (isType(TOKEN_IDENTIFIER))
     {
-        parser->countLeft = 1;
+        strCopyString(&parser->id, parser->token.attribute.string);
         getRule(assign);
     }
     // <for_assign> -> ε
@@ -488,17 +555,23 @@ int for_assign(Parser parser)
  */
 int value(Parser parser)
 {
-    parser->countRight = 1;
     // <value> -> ID <func>
     getRule(expression);
     if (parser->funcInExpr)
     {
         generate_code(func_call);
+        getType(TOKEN_IDENTIFIER);
+        strCopyString(&parser->id, parser->token.attribute.string);
+        getToken();
+        if (!isType(TOKEN_LBRACKET))
+            return ERROR_SEM;
+        parser->tokenProcessed = false;
         getRule(func);
     }
     // <value> -> <expression> <expression_n>
     else
     {
+        strAddChar(&parser->typesRight, typeToChar(parser->exprType));
         getRule(expression_n);
     }
     return ERROR_CODE_OK;
@@ -515,8 +588,8 @@ int expression_n(Parser parser)
     // <expression_n> -> , <expression> <expression_n>
     if (isType(TOKEN_COMMA))
     {
-        parser->countRight++;
         getRule(expression);
+        strAddChar(&parser->typesRight, typeToChar(parser->exprType));
         getRule(expression_n);
     }
     // <expression_n> -> ε
@@ -534,10 +607,13 @@ int expression_n(Parser parser)
  */
 int definition(Parser parser)
 {
-    parser->countLeft = 1;
     // <definition> -> := <expression>
     getType(TOKEN_VAR_DEF);
     getRule(expression);
+    if (parser->funcInExpr)
+        return ERROR_SEM;
+    symInsertLocal(parser->id.str);
+    parser->currentID->type = parser->exprType;
     return ERROR_CODE_OK;
 }
 
@@ -548,14 +624,23 @@ int definition(Parser parser)
  */
 int assign(Parser parser)
 {
-    parser->countLeft = 1;
+    if (strCmpConstStr(&parser->id, "_") != 0)
+    {
+        symReadLocal(parser->id.str);
+        parser->idType = parser->currentID->type;
+    }
+    else
+    {
+        parser->idType = tNONE;
+    }
+    strAddChar(&parser->typesLeft, typeToChar(parser->idType));
     // <assign> -> <id_n> = <value>
     getRule(id_n);
     getType(TOKEN_ASSIGN);
     getRule(value);
-    // number of items on the left and right is not equal
-    if (parser->countLeft != parser->countRight)
+    if (!compareTypes(parser->typesLeft, parser->typesRight))
         return ERROR_SEM_OTHER;
+    checkReturn();
     return ERROR_CODE_OK;
 }
 
@@ -570,14 +655,27 @@ int func(Parser parser)
     // <func> -> ( <arg> )
     if (isType(TOKEN_LBRACKET))
     {
+        if (symtableReadStack(&parser->sLocal, parser->id.str) != NULL)
+            return ERROR_SEM;
+        parser->calledFunc = symtableInsert(&parser->sGlobal, parser->id.str);
+        symCheckNull(parser->calledFunc);
         getRule(arg);
         getType(TOKEN_RBRACKET);
+        if (!parser->calledFunc->typesSet && !parser->calledFunc->defined)
+        {
+            strCopyString(&parser->calledFunc->argumentTypes, &parser->typesRight);
+            strCopyString(&parser->calledFunc->returnTypes, &parser->typesLeft);
+            parser->calledFunc->typesSet = true;
+        }
+        if (!compareTypes(parser->calledFunc->argumentTypes, parser->typesRight))
+            return ERROR_SEM_PARAM;
+        strCopyString(&parser->typesRight, &parser->calledFunc->returnTypes);
     }
     // <func> -> ε
-    else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
-    {
-        parser->tokenProcessed = false;
-    }
+    // else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
+    // {
+    //     parser->tokenProcessed = false;
+    // }
     returnRule();
 }
 
@@ -618,18 +716,24 @@ int term(Parser parser)
     {
         if (!strCmpConstStr(parser->token.attribute.string, "_"))
             return ERROR_SEM_OTHER;
+        strCopyString(&parser->id, parser->token.attribute.string);
+        symReadLocal(parser->token.attribute.string->str);
+        strAddChar(&parser->typesRight, typeToChar(parser->currentID->type));
     }
     // <term> -> VALUE_INT
     else if (isType(TOKEN_INT))
     {
+        strAddChar(&parser->typesRight, typeToChar(tINT));
     }
     // <term> -> VALUE_FLOAT64
     else if (isType(TOKEN_FLOAT))
     {
+        strAddChar(&parser->typesRight, typeToChar(tFLOAT64));
     }
     // <term> -> VALUE_STRING
     else if (isType(TOKEN_STRING))
     {
+        strAddChar(&parser->typesRight, typeToChar(tSTRING));
     }
     returnRule();
 }
@@ -667,7 +771,6 @@ int ret_values(Parser parser)
     //<ret_values> -> ε
     if (isType(TOKEN_EOL))
     {
-        parser->countRight = 0;
         parser->tokenProcessed = false;
         return ERROR_CODE_OK;
     }
