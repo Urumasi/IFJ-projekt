@@ -15,63 +15,66 @@
 #ifndef __PARSER_H__
 #define __PARSER_H__
 
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 #include "symtable.h"
 #include "stack.h"
+#include "str.h"
 
 typedef struct parser
 {
     Token token;
+    string id;
     int returnCode;
     bool tokenProcessed;
     bool declaredMain;
     bool missingReturn;
-    bool inScope;
-    int countScope;
     bool funcInExpr;
     DataType exprType;
+    DataType idType;
     bool exprIsBool;
     bool exprBoolAllowed;
-
-    int countLeft;
-    int countRight;
-
-    string str1;
-    string str2;
 
     tSymtable sGlobal;
     tSymStack sLocal;
 
-    tSymtableData *sData;
+    int typeCounter;
+    tSymtableData currentFunc;
+    tSymtableData currentID;
+    tSymtableData calledFunc;
+    string typesLeft;
+    string typesRight;
 
-} Parser;
+} * Parser;
 
-int initParser(Parser *parser);
-void deleteParser(Parser *parser);
+void addType(char type, string *typesList, tSymtableData data, Parser parser);
+Parser initParser();
+void deleteParser(Parser parser);
 int parse();
 
-int package(Parser *parser);
-int prog(Parser *parser);
-int params(Parser *parser);
-int params_n(Parser *parser);
-int ret(Parser *parser);
-int ret_params(Parser *parser);
-int ret_params_n(Parser *parser);
-int type(Parser *parser);
-int body(Parser *parser);
-int body_n(Parser *parser);
-int id_n(Parser *parser);
-int for_definition(Parser *parser);
-int for_assign(Parser *parser);
-int value(Parser *parser);
-int expression_n(Parser *parser);
-int definition(Parser *parser);
-int assign(Parser *parser);
-int func(Parser *parser);
-int arg(Parser *parser);
-int term(Parser *parser);
-int term_n(Parser *parser);
-int ret_values(Parser *parser);
+int package(Parser parser);
+int prog(Parser parser);
+int params(Parser parser);
+int params_n(Parser parser);
+int ret(Parser parser);
+int ret_params(Parser parser);
+int ret_params_n(Parser parser);
+int type(Parser parser);
+int body(Parser parser);
+int body_n(Parser parser);
+int id_n(Parser parser);
+int for_definition(Parser parser);
+int for_assign(Parser parser);
+int value(Parser parser);
+int expression_n(Parser parser);
+int definition(Parser parser);
+int assign(Parser parser);
+int func(Parser parser);
+int arg(Parser parser);
+int term(Parser parser);
+int term_n(Parser parser);
+int ret_values(Parser parser);
 
 /**
  * @brief Gets new token if token isn't processed. Returns parser->returnCode code if anything fails.
@@ -130,5 +133,41 @@ int ret_values(Parser *parser);
 #define returnRule()           \
     else { return ERROR_SYN; } \
     return ERROR_CODE_OK
+
+#define checkReturn()                        \
+    if (parser->returnCode != ERROR_CODE_OK) \
+    return parser->returnCode
+
+#define symCheckNull(data) \
+    if (data == NULL)      \
+    return ERROR_INTERNAL
+
+#define symCheckDefined(data) \
+    if (data->defined)        \
+    return ERROR_SEM
+
+#define symCheckFound(data) \
+    if (data == NULL)       \
+    return ERROR_SEM
+
+#define symInsertGlobal(key)                                     \
+    parser->currentFunc = symtableInsert(&parser->sGlobal, key); \
+    symCheckNull(parser->currentFunc);                           \
+    symCheckDefined(parser->currentFunc);                        \
+    parser->currentFunc->defined = true
+
+#define symInsertLocal(key)                                                 \
+    parser->currentID = symtableInsert(&parser->sLocal.top->symtable, key); \
+    symCheckNull(parser->currentID);                                        \
+    symCheckDefined(parser->currentID);                                     \
+    parser->currentID->defined = true
+
+#define symReadGlobal(key)                                     \
+    parser->currentFunc = symtableRead(&parser->sGlobal, key); \
+    symCheckFound(parser->currentFunc)
+
+#define symReadLocal(key)                                        \
+    parser->currentID = symtableReadStack(&parser->sLocal, key); \
+    symCheckFound(parser->currentID)
 
 #endif

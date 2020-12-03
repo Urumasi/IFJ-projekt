@@ -54,7 +54,7 @@ const char prec_table[TABLE_SIZE][TABLE_SIZE] = {
 	{'<','<','<','-','<','<','-'},	// $
 };
 
-int cleanup(Parser *parser, int error) {
+int cleanup(Parser parser, int error) {
 	stackDispose(&stack);
 	parser->tokenProcessed = false;
 	return error;
@@ -78,7 +78,7 @@ int getIndexFromSymbol(Prec_symbol symbol) {
 	}
 }
 
-int getIndexFromToken(Parser *parser) {
+int getIndexFromToken(Parser parser) {
 	if (isType(TOKEN_PLUS) || isType(TOKEN_MINUS)) {
 		return I_PLUS_MINUS;
 	}else if (isType(TOKEN_MUL) || isType(TOKEN_DIV)) {
@@ -94,7 +94,7 @@ int getIndexFromToken(Parser *parser) {
 	}else return I_DOLAR;
 }
 
-int getSymbolFromToken(Parser *parser) {	
+int getSymbolFromToken(Parser parser) {	
 	if (isType(TOKEN_PLUS)) {
 		return PLUS;
 	}else if (isType(TOKEN_MINUS)) {
@@ -130,7 +130,7 @@ int getSymbolFromToken(Parser *parser) {
 	}else return DOLAR;
 }
 
-int checkRule(int count){
+int checkRule(int count, Parser parser){
 	if (count == 1) {
 		if (stack.top->data == ID || stack.top->data == INT || stack.top->data == FLOAT || stack.top->data == STRING) {
 			return ERROR_CODE_OK;
@@ -140,6 +140,9 @@ int checkRule(int count){
 			if (stack.top->next->data >= PLUS && stack.top->next->data <= DIVIDE) {
 				return ERROR_CODE_OK;
 			}else if (stack.top->next->data >= LESSER && stack.top->next->data <= NOT_EQUAL){
+				if(parser->exprIsBool)
+					return ERROR_SEM_COMP;
+				parser->exprIsBool = true;
 				return ERROR_CODE_OK;
 			}
 		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){
@@ -162,18 +165,20 @@ void printStack(){
 	printf("--------------------------\n");
 }
 
-int reduce() {
+int reduce(Parser parser) {
 	tItemPtr *tmp = stackTop(&stack);;
 	int count = 0;
+	int returnValue = 0;
 	while (tmp != NULL) {
 		if (tmp->data != HANDLE){
 			count++;
 		}else break;
 		tmp = tmp->next;
 	}
-		
-	if (checkRule(count)){
-		return ERROR_SYN;
+	returnValue = checkRule(count, parser); 
+	if (returnValue)
+	{
+		return returnValue;
 	}
 	for (int i = 0; i < count+1; i++) {
 		stackPop(&stack);
@@ -185,15 +190,91 @@ int reduce() {
 	return ERROR_CODE_OK;
 }
 
-int expression(Parser  *parser) {
+int checkSemantic(bool firstToken, bool *divide, Parser parser)
+{
+	if (isType(TOKEN_INT))
+	{
+		if (parser->exprType == tNONE)
+		{
+			parser->exprType = tINT;
+		}
+		else if (parser->exprType != tINT)
+			return ERROR_SEM_COMP;
+	}
+	else if (isType(TOKEN_FLOAT))
+	{
+		if (parser->exprType == tNONE)
+			parser->exprType = tFLOAT64;
+		else if (parser->exprType != tFLOAT64)
+		{
+			return ERROR_SEM_COMP;
+		}
+	}
+	else if (isType(TOKEN_STRING))
+	{
+		if (parser->exprType == tNONE)
+			parser->exprType = tSTRING;
+		else if (parser->exprType != tSTRING)
+			return ERROR_SEM_COMP;
+	}
+	else if (isType(TOKEN_IDENTIFIER))
+	{
+		// TODO - id type (symtable)
+		if (!strCmpConstStr(parser->token.attribute.string, "_"))
+			return ERROR_SEM_OTHER;
+		parser->currentID = symtableReadStack(&parser->sLocal, parser->token.attribute.string->str);
+		// not declared variable, check function call
+		if (parser->currentID == NULL)
+		{
+			if (firstToken)
+			{
+				parser->funcInExpr = true;
+				return ERROR_CODE_OK;
+			}
+			else
+				return ERROR_SEM;			
+		}			
+		else
+		{
+			if (parser->exprType == tNONE)
+				parser->exprType = parser->currentID->type;
+			else if (parser->exprType != parser->currentID->type)
+				return ERROR_SEM_COMP;
+		}
+	}
+	if (parser->token.type >= TOKEN_EQ && parser->token.type <= TOKEN_GT)
+	{
+		if (!parser->exprBoolAllowed)
+			return ERROR_SEM_COMP;
+	}
+	if (parser->exprType == tSTRING && parser->token.type >= TOKEN_MINUS && parser->token.type <= TOKEN_DIV)
+		return ERROR_SEM_COMP;
+	if(isType(TOKEN_DIV))
+		*divide = true;
+	else if(!isType(TOKEN_INT))
+		*divide = false;
+	if(*divide && isType(TOKEN_INT))
+	{
+		if(parser->token.attribute.integer == 0)
+			return ERROR_DIV_ZERO;
+		else
+			*divide = false;
+	}
+	return ERROR_CODE_OK;
+}
+
+int expression(Parser  parser) {
 	stackInit(&stack);
 	char index;
 	int end = 0;
-	int tokenCount = 0;
+	bool firstToken = true;
 	int returnCode = 0;
 	bool idFirst = false;
+	bool divide = false;
+	parser->funcInExpr = false;
 	parser->exprType = tNONE;
 	parser->exprIsBool = false;
+	int semanticCode = 0;
 
 	if (stackPush(&stack, DOLAR)) {
 		return cleanup(parser, ERROR_INTERNAL);
@@ -204,54 +285,12 @@ int expression(Parser  *parser) {
 	getToken(); 
 
 	while(!end) {
-		tokenCount++;
-		//function check
-		if (tokenCount == 1 && isType(TOKEN_IDENTIFIER)) {
-			idFirst = true;
-		}else if (tokenCount == 2 && idFirst && isType(TOKEN_LBRACKET)) {
-			parser->funcInExpr = true;
-			return cleanup(parser, ERROR_CODE_OK);
-		}
-
-		// type check
-		if(isType(TOKEN_INT))
+		if(!semanticCode)
 		{
-			if(parser->exprType == tNONE) 
-			{
-				parser->exprType = tINT;
-			}
-			else if(parser->exprType != tINT)
-				return cleanup(parser, ERROR_SEM_COMP);
+			semanticCode = checkSemantic(firstToken, &divide, parser);
+			if(parser->funcInExpr)
+				return cleanup(parser, ERROR_CODE_OK);
 		}
-		else if(isType(TOKEN_FLOAT))
-		{
-			if (parser->exprType == tNONE)
-				parser->exprType = tFLOAT64;
-			else if (parser->exprType != tFLOAT64)
-				return cleanup(parser, ERROR_SEM_COMP);
-		}
-		else if(isType(TOKEN_STRING))
-		{
-			if (parser->exprType == tNONE)
-				parser->exprType = tSTRING;
-			else if (parser->exprType != tSTRING)
-				return cleanup(parser, ERROR_SEM_COMP);
-		}
-		else if(isType(TOKEN_IDENTIFIER))
-		{
-			// TODO - id type (symtable)
-			if(!strCmpConstStr(parser->token.attribute.string, "_"))
-				return cleanup(parser, ERROR_SEM_OTHER);
-		}
-		if (parser->token.type >= TOKEN_EQ && parser->token.type <= TOKEN_GT)
-		{
-			parser->exprIsBool = true;
-			if(!parser->exprBoolAllowed)
-				return cleanup(parser, ERROR_SEM_COMP);
-		}
-		if(parser->exprType == tSTRING && parser->token.type >= TOKEN_MINUS && parser->token.type <= TOKEN_DIV)
-			return cleanup(parser, ERROR_SEM_COMP);
-
 		symbol = getSymbolFromToken(parser);
 		top_terminal = stackTop(&stack);
 		if (top_terminal->data == NON_TERM && top_terminal->next->data != DOLAR) {
@@ -275,11 +314,9 @@ int expression(Parser  *parser) {
 				getToken();
 				break;
 			case '>':
-				returnCode = reduce();
-				if(returnCode == ERROR_SYN) {
-    				return cleanup(parser, ERROR_SYN);
-				}else if (returnCode == ERROR_INTERNAL) {
-					return cleanup(parser, ERROR_INTERNAL);
+				returnCode = reduce(parser);
+				if(returnCode) {
+    				return cleanup(parser, returnCode);
 				}
 				break;
 			default:
@@ -287,12 +324,16 @@ int expression(Parser  *parser) {
 					end = 1;
 					break;
 				}else return cleanup(parser, ERROR_SYN);
-		}		
+		}
+		firstToken = false;
 	}
 
 	if (!(stack.top->data == NON_TERM && stack.top->next->data == DOLAR)) {
 		return cleanup(parser, ERROR_SYN);
 	}
+
+	if(semanticCode)
+		return semanticCode;
 
 	if(parser->exprBoolAllowed && !parser->exprIsBool)
 		return cleanup(parser, ERROR_SEM_COMP);

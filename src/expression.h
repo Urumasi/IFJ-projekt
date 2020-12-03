@@ -58,6 +58,6 @@ typedef enum {
 }Prec_index;
 
 int getIndexFromSymbol(Prec_symbol symbol);
-int expression(Parser *parser);
+int expression(Parser parser);
 
 #endif //__EXPRESSION_H__
