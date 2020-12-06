@@ -139,6 +139,7 @@ void deleteParser(Parser parser)
 int parse()
 {
     Parser parser = initParser();
+    generate_code(prog_init);
     parser->returnCode = package(parser);
     if (parser->returnCode == ERROR_CODE_OK)
     {
@@ -148,6 +149,8 @@ int parse()
             parser->returnCode = ERROR_SEM_PARAM;
         }
     }
+    print_taclist();
+    generate_end();
     int returnCode = parser->returnCode;
     deleteParser(parser);
     return returnCode;
@@ -467,6 +470,7 @@ int body_n(Parser parser)
     {
         parser->tokenProcessed = false;
         getRule(definition);
+        generate_code(define_var);
     }
     //<body_n> -> <assign>
     else if (isType(TOKEN_COMMA) || isType(TOKEN_ASSIGN))
@@ -477,7 +481,7 @@ int body_n(Parser parser)
     //<body_n>-> ( <arg> )
     else if (isType(TOKEN_LBRACKET))
     {
-        printf("FUNCTIONCALL\n");
+        printf("FUNCTIONCALL %s\n", parser->id.str);
         parser->tokenProcessed = false;
         getRule(func);
     }
@@ -506,6 +510,7 @@ int id_n(Parser parser)
         {
             parser->idType = tNONE;
         }
+        generate_code(assign_push_id);
         strAddChar(&parser->typesLeft, typeToChar(parser->idType));
         getRule(id_n);
     }
@@ -572,9 +577,9 @@ int value(Parser parser)
     getRule(expression);
     if (parser->funcInExpr)
     {
-        generate_code(func_call);
         getType(TOKEN_IDENTIFIER);
         strCopyString(&parser->id, parser->token.attribute.string);
+        generate_code(func_call);
         getToken();
         if (!isType(TOKEN_LBRACKET))
             return ERROR_SEM;
@@ -646,6 +651,7 @@ int assign(Parser parser)
     {
         parser->idType = tNONE;
     }
+    generate_code(assign_push_id);
     strAddChar(&parser->typesLeft, typeToChar(parser->idType));
     // <assign> -> <id_n> = <value>
     getRule(id_n);
@@ -653,6 +659,7 @@ int assign(Parser parser)
     getRule(value);
     if (!compareTypes(parser->typesLeft, parser->typesRight))
         return ERROR_SEM_OTHER;
+    generate_code(assign);
     checkReturn();
     return ERROR_CODE_OK;
 }

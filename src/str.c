@@ -3,6 +3,7 @@
 //jednoducha knihovna pro praci s nekonecne dlouhymi retezci
 #include <string.h>
 #include <malloc.h>
+#include <stdio.h>
 #include "str.h"
 
 #define STR_LEN_INC 8
@@ -33,14 +34,64 @@ int strInitCopy(string *s1, string *s2)
 int strInitFromConst(string *s1, const char *s2)
 // funkce vytvori novy retezec s obsahem s2
 {
-   if(!s2)
-      return STR_ERROR;
+   if(!s1 || !s2)
+       return STR_ERROR;
    if ((s1->str = (char*) malloc(strlen(s2)+1)) == NULL)
-      return STR_ERROR;
+       return STR_ERROR;
    strcpy(s1->str, s2);
    s1->length = strlen(s2);
    s1->allocSize = s1->length + 1;
    return STR_SUCCESS;
+}
+
+int strInitFromFormat(string *s, const char *fmt, ...){
+    va_list args;
+    va_start(args, fmt);
+    char buffer[FORMAT_BUFFER_LENGTH];
+    vsnprintf(buffer, FORMAT_BUFFER_LENGTH, fmt, args);
+    va_end(args);
+    return strInitFromConst(s, buffer);
+}
+
+string *strCreate(const char *s){
+    string *out = malloc(sizeof(string));
+    if(!out)
+        return NULL;
+    int ret = strInitFromConst(out, s);
+    if(ret){
+        free(out);
+        return NULL;
+    }
+    return out;
+}
+
+string *strCreateCopy(string *s){
+    string *out = malloc(sizeof(string));
+    if(!out)
+        return NULL;
+    int ret = strInitFromConst(out, s->str);
+    if(ret){
+        free(out);
+        return NULL;
+    }
+    return out;
+}
+
+string *strCreateFromFormat(const char *fmt, ...){
+    string *out = malloc(sizeof(string));
+    if(!out)
+        return NULL;
+    va_list args;
+    va_start(args, fmt);
+    char buffer[FORMAT_BUFFER_LENGTH];
+    vsnprintf(buffer, FORMAT_BUFFER_LENGTH, fmt, args);
+    va_end(args);
+    int ret = strInitFromConst(out, buffer);
+    if(ret){
+        free(out);
+        return NULL;
+    }
+    return out;
 }
 
 void strFree(string *s)

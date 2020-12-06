@@ -16,6 +16,7 @@
 #define __SCANNER_H__
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "str.h"
 
@@ -42,7 +43,7 @@ typedef union
 {
     Keyword keyword;
     string *string;
-    int integer;
+    int64_t integer;
     double decimal;
 } Token_attribute;
 

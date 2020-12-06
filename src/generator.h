@@ -15,66 +15,65 @@
 #ifndef __GENERATOR_H__
 #define __GENERATOR_H__
 
-#include "scanner.h"
+#include <stdbool.h>
+#include "parser.h"
 #include "expression.h"
 #include "str.h"
+#include "taclist.h"
 
 #define generate_code(code_type) \
-    if (generate_ ## code_type (&parser->token)) \
-    return ERROR_INTERNAL
+    if (generate_ ## code_type (parser)) \
+    return ERROR_INTERNAL;
 
-typedef enum {
-	NONE,
-	ADD,
-	SUB,
-	MUL,
-	DIV,
-	ASSIGN,
-	DEFINE,
-	JUMP,
-	CALL,
-	RETURN,
-	LABEL,
-} InstructionType;
+// Symbol stack
 
-typedef struct s_TAC { // Three address code
-	InstructionType type;
-	string destination;
-	string operand1;
-	string operand2;
-} TAC;
+typedef struct s_sstack_item {
+    struct s_sstack_item *next;
+    struct s_sstack_item *prev;
+    TAC_addr *data;
+} *sstack_item_ptr;
 
-// parser generators
+typedef struct s_sstack {
+    sstack_item_ptr head;
+    sstack_item_ptr tail;
+    unsigned int length;
+} sstack;
 
-int generate_push(Token *token);
+int ss_init(sstack *stack);
+void ss_free(sstack *stack);
+int ss_push(sstack *stack, TAC_addr *data);
+int ss_push_copy(sstack *stack, TAC_addr data);
+TAC_addr *ss_pop(sstack *stack);
+bool ss_empty(sstack *stack);
 
-int generate_func(Token *token);
+// Base function
 
-int generate_func_end(Token *token);
+void print_taclist();
 
-int generate_return(Token *token);
+void generate_end();
 
-int generate_func_call(Token *token);
+// Parser generators
 
-// expression generators
+int generate_prog_init(Parser parser);
 
-void generate_operation(Prec_symbol symbol);
+int generate_push(Parser parser);
 
-/*
-void generate_prog_init();
+int generate_func(Parser parser);
 
-int generate_if_then();
+int generate_func_end(Parser parser);
 
-void generate_if_else(unsigned int label);
+int generate_return(Parser parser);
 
-void generate_if_end(unsigned int label);
+int generate_func_call(Parser parser);
 
-void generate_var_definition(Token *token);
+int generate_define_var(Parser parser);
 
-void generate_var_definition_assign(string *var_name);
+int generate_assign_push_id(Parser parser);
 
-void generate_comparison(Prec_symbol symbol);
+int generate_assign(Parser parser);
 
-*/
+// Expression generators
+
+int generate_operation(Prec_symbol symbol);
 
 #endif //__GENERATOR_H__

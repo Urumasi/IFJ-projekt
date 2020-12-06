@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include "scanner.h"
 #include "symtable.h"
 #include "stack.h"
 #include "str.h"
