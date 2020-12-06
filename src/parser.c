@@ -15,11 +15,9 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "scanner.h"
+
 #include "parser.h"
 #include "expression.h"
-#include "error.h"
-#include "symtable.h"
 
 Parser parser;
 

@@ -17,7 +17,6 @@
 #include <stdlib.h>
 
 #include "scanner.h"
-#include "error.h"
 
 #define SCANNER_STATE_START 1                   // Starting state.
 #define SCANNER_STATE_EOL 2                     // End of line.

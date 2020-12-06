@@ -24,25 +24,6 @@
 
 tStack stack;
 
-/*
-TODO
-syntaktická kontrola výrazů
--nesmí být prázdný výraz
--nesmí se vyskytovat volání funkce
--volání funkce může být jen na začátku a nesmí pokračovat výrazem ( a, b = func() ) - domluvíme se potom
-Příklad:
-    x := fn() + 5 - syntaktická chyba, pokud nemáš FUNEXP
-    x := fn() - syntaktická chyba, pokud nemáš MULTIVAL 
-    x = fn() + 5 - syntaktická chyba, pokud nemáš FUNEXP
-    x = fn() - vždy syntakticky správně
-sémantika - možná budu dělat já
--kontrola dělení 0
--kontrola typů
--kontrola návratové hodnoty
-    - v if/for to musí vracet BOOL, takže tam musí být porovnávání
-    - v přiřazení/dekleraci porovnávání být nesmí
-*/
-
 const char prec_table[TABLE_SIZE][TABLE_SIZE] = {
 //	|+- |*/ | ( | ) | i | r | $ |
 	{'>','<','<','>','<','>','>'},	// +-
@@ -152,17 +133,6 @@ int checkRule(int count, Parser parser){
 		}
 	}
 	return ERROR_SYN;
-}
-
-void printStack(){
-	tItemPtr *tmp = stackTop(&stack);
-	int i = 0;
-	while (tmp != NULL) {
-		i++;
-		printf("Item: %d. Value: %d. \n", i, tmp->data);
-		tmp = tmp->next;
-	}
-	printf("--------------------------\n");
 }
 
 int reduce(Parser parser) {
@@ -333,7 +303,7 @@ int expression(Parser  parser) {
 	}
 
 	if(semanticCode)
-		return semanticCode;
+		return cleanup(parser, semanticCode);
 
 	if(parser->exprBoolAllowed && !parser->exprIsBool)
 		return cleanup(parser, ERROR_SEM_COMP);

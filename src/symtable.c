@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include "symtable.h"
-#include "error.h"
 
 int symtableSIZE = MAX_SYMSIZE;
 

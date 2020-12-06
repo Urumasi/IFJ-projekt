@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include "str.h"
+#include "error.h"
 
 // SYMTABLE
 #define MAX_SYMSIZE 101
