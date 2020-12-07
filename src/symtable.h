@@ -1,3 +1,17 @@
+/**
+ * IFJ Project 2020: Team 008, variant II
+ * 
+ * @file symtable.h
+ * 
+ * @brief
+ *
+ * 
+ * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
+ * @author Adriana Jurkechová <xjurke02@stud.fit.vutbr.cz>
+ * @author Karel Norek <xnorek01@stud.fit.vutbr.cz>
+ * @author Petr Salaba <xsalab00@stud.fit.vutbr.cz>
+ */
+
 #ifndef __SYMTABLE_H__
 #define __SYMTABLE_H__
 
