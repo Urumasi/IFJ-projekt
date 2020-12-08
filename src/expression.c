@@ -139,13 +139,13 @@ int checkRule(int count, Parser parser){
 	}else if (count == 3) {
 		if (stack.top->data == NON_TERM && stack.top->next->next->data == NON_TERM) {
 			if (stack.top->next->data >= PLUS && stack.top->next->data <= DIVIDE) {
-				generate_operation(stack.top->next->data);
+				generate_operation(stack.top->next->data, parser->exprType);
 				return ERROR_CODE_OK;
 			}else if (stack.top->next->data >= LESSER && stack.top->next->data <= NOT_EQUAL){
 				if(parser->exprIsBool)
 					return ERROR_SEM_COMP;
 				parser->exprIsBool = true;
-				generate_operation(stack.top->next->data);
+				generate_operation(stack.top->next->data, parser->exprType);
 				return ERROR_CODE_OK;
 			}
 		}else if (stack.top->data == RIGHT_BRACKET && stack.top->next->next->data == LEFT_BRACKET){

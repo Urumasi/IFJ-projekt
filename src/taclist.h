@@ -20,27 +20,41 @@
 
 #define TAC_COUNT_PER_ALLOC 64
 
-#define INIT_IF_NOT_NULL(dest, src) \
-    if (src) \
-    strInitCopy(dest, src); \
-    else \
-    strInit(dest);
+#define HAS_STRING(x) (x == ADDR_STRING || x == ADDR_RAWSTRING || x == ADDR_VAR || x == ADDR_OTUVAR)
 
 typedef enum {
-    TAC_NONE,
+    TAC_NONE,       // 0
     TAC_ADD,
     TAC_SUB,
     TAC_MUL,
     TAC_DIV,
-    TAC_ASSIGN_ID,
+    TAC_IDIV,
+    TAC_CONCAT,
+    TAC_LESSER,
+    TAC_LESS_OR_EQ,
+    TAC_GREATER,
+    TAC_GRT_OR_EQ,  // 10
+    TAC_EQUAL,
+    TAC_NOT_EQUAL,
+    TAC_PUSH,
     TAC_ASSIGN,
     TAC_DEFINE,
     TAC_JUMP,
     TAC_CALL,
     TAC_RETURN,
     TAC_LABEL,
-    TAC_EXIT,
+    TAC_EXIT,       // 20
     TAC_FUNC,
+    TAC_FUNC_PARAM,
+    TAC_WRITE,
+    TAC_IF,
+    TAC_ELSE,
+    TAC_ENDIF,
+    TAC_FOR,
+    TAC_FOR_COND,
+    TAC_FOR_ASSIGN,
+    TAC_ENDFOR,     // 30
+    TAC_HOOK,
 } InstructionType;
 
 typedef enum {
@@ -48,8 +62,11 @@ typedef enum {
     ADDR_INT,
     ADDR_FLOAT,
     ADDR_STRING,
+    ADDR_RAWSTRING,
     ADDR_VAR,
     ADDR_OTUVAR, // one-time use variable
+    ADDR_STACK,
+    ADDR_DISCARD, // special var _
 } AddressType;
 
 /**
@@ -83,6 +100,9 @@ typedef struct s_TAC_list {
     TAC_list_block_ptr tail; // For appending quickly
     unsigned int length;
     unsigned int blockCount;
+
+    TAC_list_block_ptr cached_block;
+    unsigned int cached_block_id;
 } TAC_list;
 
 int tac_list_init(TAC_list *list);

@@ -97,7 +97,10 @@ string *strCreateFromFormat(const char *fmt, ...){
 void strFree(string *s)
 // funkce uvolni retezec z pameti
 {
-   free(s->str);
+    if(!s || !s->str)
+        return;
+    free(s->str);
+    s->str = NULL;
 }
 
 void strClear(string *s)

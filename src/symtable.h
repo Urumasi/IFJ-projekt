@@ -29,6 +29,9 @@ typedef struct tSymtableData
 
 	//var
 	DataType type;
+
+	//generation
+	int scopeId;
 } * tSymtableData;
 
 typedef struct tSymtableItem

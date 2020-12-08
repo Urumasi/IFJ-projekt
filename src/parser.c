@@ -149,10 +149,9 @@ int parse()
             parser->returnCode = ERROR_SEM_PARAM;
         }
     }
-    print_taclist();
-    generate_end();
     int returnCode = parser->returnCode;
     deleteParser(parser);
+    //print_taclist(); // TODO: remove debug
     return returnCode;
 }
 
@@ -176,6 +175,7 @@ int package(Parser parser)
         return ERROR_SYN;
     getType(TOKEN_EOL);
     getRule(prog);
+    generate_code(prog_end);
     return ERROR_CODE_OK;
 }
 
@@ -193,12 +193,12 @@ int prog(Parser parser)
         symStackPush(&parser->sLocal);
         getType(TOKEN_IDENTIFIER);
         symInsertGlobal(parser->token.attribute.string->str);
-        generate_code(func);
         getType(TOKEN_LBRACKET);
         getRule(params);
         getType(TOKEN_RBRACKET);
         getRule(ret);
         parser->currentFunc->typesSet = true;
+        generate_code(func);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -237,6 +237,7 @@ int params(Parser parser)
         symInsertLocal(parser->id.str);
         parser->typeCounter = 0;
         getRule(type);
+        generate_code(func_param);
         getRule(params_n);
         if (parser->typeCounter != parser->currentFunc->argumentTypes.length)
             return ERROR_SEM_PARAM;
@@ -282,6 +283,7 @@ int params_n(Parser parser)
         strCopyString(&parser->id, parser->token.attribute.string);
         symInsertLocal(parser->id.str);
         getRule(type);
+        generate_code(func_param);
         getRule(params_n);
     }
     // <params_n> -> ε
@@ -384,21 +386,26 @@ int body(Parser parser)
     if (isKeyword(KW_FOR))
     {
         symStackPush(&parser->sLocal);
+        generate_code(for_begin);
         getRule(for_definition);
         getType(TOKEN_SEMICOLON);
+        generate_code(for_condition);
         parser->exprBoolAllowed = true;
         getRule(expression);
         parser->exprBoolAllowed = false;
         getType(TOKEN_SEMICOLON);
+        generate_code(for_assign);
         getRule(for_assign);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         symStackPush(&parser->sLocal);
+        generate_code(for);
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
         symStackPop(&parser->sLocal);
         symStackPop(&parser->sLocal);
+        generate_code(endfor);
         getRule(body);
     }
     // <body> -> IF <expression> { EOL <body> } ELSE { EOL <body> } EOL <body>
@@ -409,6 +416,7 @@ int body(Parser parser)
         parser->exprBoolAllowed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_code(if);
         symStackPush(&parser->sLocal);
         getRule(body);
         symStackPop(&parser->sLocal);
@@ -416,11 +424,13 @@ int body(Parser parser)
         getKeyword(KW_ELSE);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_code(else);
         symStackPush(&parser->sLocal);
         getRule(body);
         symStackPop(&parser->sLocal);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_code(endif);
         getRule(body);
     }
     // <body> -> RETURN <ret_values> EOL <body>
@@ -470,7 +480,6 @@ int body_n(Parser parser)
     {
         parser->tokenProcessed = false;
         getRule(definition);
-        generate_code(define_var);
     }
     //<body_n> -> <assign>
     else if (isType(TOKEN_COMMA) || isType(TOKEN_ASSIGN))
@@ -481,9 +490,9 @@ int body_n(Parser parser)
     //<body_n>-> ( <arg> )
     else if (isType(TOKEN_LBRACKET))
     {
-        printf("FUNCTIONCALL %s\n", parser->id.str);
         parser->tokenProcessed = false;
         getRule(func);
+        generate_code(void_func_call);
     }
     returnRule();
 }
@@ -579,12 +588,12 @@ int value(Parser parser)
     {
         getType(TOKEN_IDENTIFIER);
         strCopyString(&parser->id, parser->token.attribute.string);
-        generate_code(func_call);
         getToken();
         if (!isType(TOKEN_LBRACKET))
             return ERROR_SEM;
         parser->tokenProcessed = false;
         getRule(func);
+        generate_code(func_call);
     }
     // <value> -> <expression> <expression_n>
     else
@@ -632,6 +641,7 @@ int definition(Parser parser)
         return ERROR_SEM;
     symInsertLocal(parser->id.str);
     parser->currentID->type = parser->exprType;
+    generate_code(define_var);
     return ERROR_CODE_OK;
 }
 
@@ -712,6 +722,7 @@ int arg(Parser parser)
     {
         parser->tokenProcessed = false;
         getRule(term);
+        generate_code(stack_push);
         getRule(term_n);
     }
     // <arg> -> ε
@@ -770,6 +781,7 @@ int term_n(Parser parser)
     if (isType(TOKEN_COMMA))
     {
         getRule(term);
+        generate_code(stack_push);
         getRule(term_n);
     }
     // <term_n> -> ε

@@ -40,6 +40,7 @@ typedef struct parser
     tSymtable sGlobal;
     tSymStack sLocal;
 
+    int scopeCounter;
     int typeCounter;
     tSymtableData currentFunc;
     tSymtableData currentID;

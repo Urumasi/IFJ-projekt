@@ -20,6 +20,8 @@ int tac_list_init(TAC_list *list) {
     list->tail = NULL;
     list->length = 0;
     list->blockCount = 0;
+    list->cached_block = NULL;
+    list->cached_block_id = -1;
     return 0;
 }
 
@@ -88,7 +90,9 @@ void tac_free(TAC *tac) {
 }
 
 void tac_addr_free(TAC_addr *addr) {
-    if (addr->type == ADDR_STRING || addr->type == ADDR_VAR) {
+    if (!addr)
+        return;
+    if (HAS_STRING(addr->type)) {
         strFree(addr->data.string);
         free(addr->data.string);
     }
@@ -127,27 +131,31 @@ TAC *tac_create(InstructionType type, TAC_addr dest, TAC_addr op1, TAC_addr op2)
 }
 
 TAC *tac_get_line(TAC_list *list, const unsigned int idx) {
-    static TAC_list_block_ptr cached_block;
-    static unsigned int cached_block_id = -1;
-
-    if (!list || !list->head || idx >= list->length)
+    if (!list || !list->head || idx >= list->length) {
         return NULL;
+    }
 
     unsigned int block_id = idx / TAC_COUNT_PER_ALLOC;
-    if (block_id >= list->blockCount)
+    if (block_id >= list->blockCount) {
         return NULL;
+    }
 
     TAC_list_block_ptr block = list->head;
-    if (block_id == cached_block_id) {
-        block = cached_block;
+    if (block_id == list->cached_block_id) {
+        block = list->cached_block;
+    } else if (list->cached_block_id != -1 && block_id == list->cached_block_id + 1) {
+        block = list->cached_block->next;
+        list->cached_block = block;
+        list->cached_block_id++;
     } else {
         for (unsigned int i = block_id; i; --i) {
-            if (!block->next)
+            if (!block->next) {
                 return NULL;
+            }
             block = block->next;
         }
-        cached_block = block;
-        cached_block_id = block_id;
+        list->cached_block = block;
+        list->cached_block_id = block_id;
     }
 
     return block->data[idx % TAC_COUNT_PER_ALLOC];
