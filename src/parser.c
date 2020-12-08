@@ -84,6 +84,19 @@ int parse()
         {
             parser->returnCode = ERROR_SEM_PARAM;
         }
+        for (int i = 0; i < MAX_SYMSIZE; i++)
+        {
+            tSymtableItem *item = parser->sGlobal[i];
+            while (item)
+            {
+                if (!item->data->defined)
+                {
+                    parser->returnCode = ERROR_SEM;
+                    break;
+                }
+                item = item->ptrnext;
+            }
+        }
     }
     int returnCode = parser->returnCode;
     deleteParser(parser);
