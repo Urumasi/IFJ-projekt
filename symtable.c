@@ -197,7 +197,7 @@ bool symSymStackEmpty(tSymStack *symStack)
 }
 
 /**
- * @brief Push value into the stack
+ * @brief Push symtable into the stack
  * @param stack Stack
  * @return Function returns false if allocation failed otherwise returns true
  */
