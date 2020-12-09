@@ -1,6 +1,16 @@
-//
-// Created by petr on 09.12.2020.
-//
+/**
+ * IFJ Project 2020: Team 008, variant II
+ *
+ * @file builtin.c
+ *
+ * @brief Built-in structure method definitions.
+ *
+ *
+ * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
+ * @author Adriana Jurkechová <xjurke02@stud.fit.vutbr.cz>
+ * @author Karel Norek <xnorek01@stud.fit.vutbr.cz>
+ * @author Petr Salaba <xsalab00@stud.fit.vutbr.cz>
+ */
 
 #include "builtin.h"
 #include "generator.h"

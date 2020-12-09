@@ -1,6 +1,16 @@
-//
-// Created by petr on 09.12.2020.
-//
+/**
+ * IFJ Project 2020: Team 008, variant II
+ *
+ * @file builtin.h
+ *
+ * @brief Built-in functions and structures.
+ *
+ *
+ * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
+ * @author Adriana Jurkechová <xjurke02@stud.fit.vutbr.cz>
+ * @author Karel Norek <xnorek01@stud.fit.vutbr.cz>
+ * @author Petr Salaba <xsalab00@stud.fit.vutbr.cz>
+ */
 
 #ifndef IFJ_PROJEKT_BUILTIN_H
 #define IFJ_PROJEKT_BUILTIN_H
