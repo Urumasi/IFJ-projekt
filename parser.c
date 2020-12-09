@@ -18,10 +18,11 @@
 
 #include "parser.h"
 #include "expression.h"
+#include "generator.h"
 
 /**
- * @brief initializes parser structure 
- * 
+ * @brief initializes parser structure
+ *
  * @return initialized structure
  */
 Parser initParser()
@@ -54,8 +55,8 @@ Parser initParser()
 }
 
 /**
- * @brief Clears parser structure 
- * 
+ * @brief Clears parser structure
+ *
  * @param parser parser structure
  */
 void deleteParser(Parser parser)
@@ -76,6 +77,7 @@ void deleteParser(Parser parser)
 int parse()
 {
     Parser parser = initParser();
+    generate_code(prog_init);
     parser->returnCode = package(parser);
     if (parser->returnCode == ERROR_CODE_OK)
     {
@@ -123,6 +125,7 @@ int package(Parser parser)
         return ERROR_SYN;
     getType(TOKEN_EOL);
     getRule(prog);
+    generate_code(prog_end);
     return ERROR_CODE_OK;
 }
 
@@ -145,6 +148,7 @@ int prog(Parser parser)
         getType(TOKEN_RBRACKET);
         getRule(ret);
         parser->currentFunc->typesSet = true;
+        generate_code(func);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         getRule(body);
@@ -153,6 +157,7 @@ int prog(Parser parser)
         if (parser->missingReturn)
             return ERROR_SEM_PARAM;
         symStackPop(&parser->sLocal);
+        generate_code(func_end);
         getRule(prog);
     }
     //<prog> -> EOF
@@ -181,6 +186,7 @@ int params(Parser parser)
         symInsertLocal(parser->id.str);
         parser->typeCounter = 0;
         getRule(type);
+        generate_code(func_param);
         getRule(params_n);
         if (parser->typeCounter != parser->currentFunc->argumentTypes.length)
             return ERROR_SEM_PARAM;
@@ -225,6 +231,7 @@ int params_n(Parser parser)
         strCopyString(&parser->id, parser->token.attribute.string);
         symInsertLocal(parser->id.str);
         getRule(type);
+        generate_code(func_param);
         getRule(params_n);
     }
     // <params_n> -> ε
@@ -327,21 +334,26 @@ int body(Parser parser)
     if (isKeyword(KW_FOR))
     {
         symStackPush(&parser->sLocal);
+        generate_code(for_begin);
         getRule(for_definition);
         getType(TOKEN_SEMICOLON);
+        generate_code(for_condition);
         parser->exprBoolAllowed = true;
         getRule(expression);
         parser->exprBoolAllowed = false;
         getType(TOKEN_SEMICOLON);
+        generate_code(for_assign);
         getRule(for_assign);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
         symStackPush(&parser->sLocal);
+        generate_code(for);
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
         symStackPop(&parser->sLocal);
         symStackPop(&parser->sLocal);
+        generate_code(endfor);
         getRule(body);
     }
     // <body> -> IF <expression> { EOL <body> } ELSE { EOL <body> } EOL <body>
@@ -352,6 +364,7 @@ int body(Parser parser)
         parser->exprBoolAllowed = false;
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_code(if);
         symStackPush(&parser->sLocal);
         getRule(body);
         symStackPop(&parser->sLocal);
@@ -359,11 +372,13 @@ int body(Parser parser)
         getKeyword(KW_ELSE);
         getType(TOKEN_LCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_code(else);
         symStackPush(&parser->sLocal);
         getRule(body);
         symStackPop(&parser->sLocal);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
+        generate_code(endif);
         getRule(body);
     }
     // <body> -> RETURN <ret_values> EOL <body>
@@ -375,6 +390,7 @@ int body(Parser parser)
         if (!compareTypes(parser->typesRight, parser->currentFunc->returnTypes))
             return ERROR_SEM_PARAM;
         getType(TOKEN_EOL);
+        generate_code(return);
         getRule(body);
     }
     // <body> -> ID <body_n> EOL <body>
@@ -423,6 +439,7 @@ int body_n(Parser parser)
     {
         parser->tokenProcessed = false;
         getRule(func);
+        generate_code(void_func_call);
     }
     returnRule();
 }
@@ -449,6 +466,7 @@ int id_n(Parser parser)
         {
             parser->idType = tNONE;
         }
+        generate_code(assign_push_id);
         strAddChar(&parser->typesLeft, typeToChar(parser->idType));
         getRule(id_n);
     }
@@ -522,6 +540,7 @@ int value(Parser parser)
             return ERROR_SEM;
         parser->tokenProcessed = false;
         getRule(func);
+        generate_code(func_call);
     }
     // <value> -> <expression> <expression_n>
     else
@@ -569,6 +588,7 @@ int definition(Parser parser)
         return ERROR_SEM;
     symInsertLocal(parser->id.str);
     parser->currentID->type = parser->exprType;
+    generate_code(define_var);
     return ERROR_CODE_OK;
 }
 
@@ -588,6 +608,7 @@ int assign(Parser parser)
     {
         parser->idType = tNONE;
     }
+    generate_code(assign_push_id);
     strAddChar(&parser->typesLeft, typeToChar(parser->idType));
     // <assign> -> <id_n> = <value>
     getRule(id_n);
@@ -595,6 +616,7 @@ int assign(Parser parser)
     getRule(value);
     if (!compareTypes(parser->typesLeft, parser->typesRight))
         return ERROR_SEM_OTHER;
+    generate_code(assign);
     checkReturn();
     return ERROR_CODE_OK;
 }
@@ -642,6 +664,7 @@ int arg(Parser parser)
     {
         parser->tokenProcessed = false;
         getRule(term);
+        generate_code(stack_push);
         getRule(term_n);
     }
     // <arg> -> ε
@@ -699,6 +722,7 @@ int term_n(Parser parser)
     if (isType(TOKEN_COMMA))
     {
         getRule(term);
+        generate_code(stack_push);
         getRule(term_n);
     }
     // <term_n> -> ε
@@ -734,12 +758,12 @@ int ret_values(Parser parser)
 
 /**
  * @brief Adds built-in function to global symtable
- * 
+ *
  * @param key function name
  * @param argumentTypes argument types in string form
  * @param returnTypes return types in string form
  * @param parser parser structure
- * @return int 
+ * @return int
  */
 int addBuiltinFunc(char *key, char *argumentTypes, char *returnTypes, Parser parser)
 {
@@ -752,7 +776,7 @@ int addBuiltinFunc(char *key, char *argumentTypes, char *returnTypes, Parser par
 
 /**
  * @brief Converts keyword enum to datatype enum
- * 
+ *
  * @param keyword keyword to convert
  * @return DataType enum
  */
@@ -770,10 +794,10 @@ DataType keywordToType(Keyword keyword)
 
 /**
  * @brief Converts datatype enum to type in char format
- * 
- * @param type 
+ *
+ * @param type
  * @return type as char
- *           0 - int 
+ *           0 - int
  *           1 - float64
  *           2 - string
  *           3 - none / underscore
@@ -795,7 +819,7 @@ char typeToChar(DataType type)
 
 /**
  * @brief Compares two data types in string format
- * 
+ *
  * @param typesLeft data type in string format
  * @param typesRight data type in string format
  * @return true if types match
@@ -819,7 +843,7 @@ bool compareTypes(string typesLeft, string typesRight)
 
 /**
  * @brief Adds type in char format to list of types in string format
- * 
+ *
  * @param type type in char format
  * @param typesList list of types in string format
  * @param data struct of symtable data that contains list of types

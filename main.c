@@ -15,6 +15,7 @@
 #include "scanner.h"
 #include "error.h"
 #include "parser.h"
+#include "generator.h"
 
 int main(int argc, char *argv[])
 {
@@ -41,6 +42,15 @@ int main(int argc, char *argv[])
 
     int error;
     error = parse();
+
+    if(error == 0)
+    {
+        if(generate())
+        {
+            error = ERROR_INTERNAL;
+        }
+        generate_free();
+    }
 
     fprintf(stderr, "Program returned %d\n", error);
 

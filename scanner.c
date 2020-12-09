@@ -129,7 +129,7 @@ static int proscessingInteger(Token *token, string *str)
 {
     char *endptr;
 
-    int value = (int)strtol(str->str, &endptr, 10);
+    int64_t value = (int)strtoll(str->str, &endptr, 10);
     if (*endptr)
     {
         return freeResources(ERROR_INTERNAL, str);
@@ -149,7 +149,7 @@ static int processingDecimal(Token *token, string *str)
 {
     char *endptr;
 
-    float value = strtof(str->str, &endptr);
+    double value = strtod(str->str, &endptr);
     if (*endptr)
     {
         return freeResources(ERROR_CODE_OK, str);

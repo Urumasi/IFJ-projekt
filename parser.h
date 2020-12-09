@@ -23,6 +23,7 @@
 #include "stack.h"
 #include "error.h"
 #include "str.h"
+#include "error.h"
 
 typedef struct parser
 {
@@ -30,7 +31,6 @@ typedef struct parser
     string id;
     int returnCode;
     bool tokenProcessed;
-    bool declaredMain;
     bool missingReturn;
     bool funcInExpr;
     DataType exprType;
@@ -41,6 +41,7 @@ typedef struct parser
     tSymtable sGlobal;
     tSymStack sLocal;
 
+    int scopeCounter;
     int typeCounter;
     tSymtableData currentFunc;
     tSymtableData currentID;
