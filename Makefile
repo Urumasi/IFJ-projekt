@@ -5,7 +5,7 @@ SRC_DIR = src
 OBJ_DIR = obj
 
 TARGET = ifj20
-MODULES = main scanner parser expression str stack symtable generator taclist
+MODULES = main scanner parser expression str stack symtable generator taclist builtin
 SOURCES = $(MODULES:%=$(SRC_DIR)/%.c)
 OBJS = $(MODULES:%=$(OBJ_DIR)/%.o)
 

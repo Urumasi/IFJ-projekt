@@ -25,6 +25,10 @@
     if (generate_ ## code_type (parser)) \
     return ERROR_INTERNAL;
 
+#define GENERATE_ID(x) ((unsigned long long)((void*)(x) - (void*)parser))
+#define GENERATE_NAME(x, y) (strCreateFromFormat("%s$%llx", x, GENERATE_ID(y)))
+#define GENERATE_SCOPED_NAME(x, y) (strCreateFromFormat("%s$%d$%llx", x, y->scopeId, GENERATE_ID(y)))
+
 // Symbol stack
 
 typedef struct s_sstack_item {
@@ -40,10 +44,15 @@ typedef struct s_sstack {
 } sstack;
 
 void ss_init(sstack *stack);
+
 void ss_free(sstack *stack);
+
 int ss_push(sstack *stack, TAC_addr *data);
+
 int ss_push_copy(sstack *stack, TAC_addr data);
+
 TAC_addr *ss_pop(sstack *stack);
+
 bool ss_empty(sstack *stack);
 
 // TAC_list list
@@ -60,9 +69,13 @@ typedef struct s_TAC_ll {
 } TAC_ll;
 
 void ll_init(TAC_ll *list);
+
 void ll_free(TAC_ll *list);
+
 int ll_append(TAC_ll *list, TAC_list *data);
+
 TAC_list *ll_get(TAC_ll *list, unsigned int id);
+
 TAC_list *ll_last(TAC_ll *list);
 
 // Base function

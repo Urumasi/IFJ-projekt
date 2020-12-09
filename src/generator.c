@@ -14,6 +14,7 @@
 
 #include "generator.h"
 #include "stack.h"
+#include "builtin.h"
 
 TAC_list list;
 sstack symbol_stack;
@@ -24,11 +25,16 @@ tStack scope_stack;
 TAC_ll hook_list;
 unsigned int for_depth = 0;
 
+Builtin_list builtins;
+
+#define ADD_BUILTIN(key) symReadGlobal(#key); \
+if (addBuiltin(&builtins, #key, BUILTIN_ ## key, GENERATE_NAME("func", parser->currentFunc))){ \
+    builtinFree(&builtins); \
+    return 1; \
+};
+
 #define TACNONE (TAC_addr) {ADDR_NONE, 0}
 
-#define GENERATE_ID(x) ((unsigned long long)((void*)(x) - (void*)parser))
-#define GENERATE_NAME(x, y) (strCreateFromFormat("%s$%llx", x, GENERATE_ID(y)))
-#define GENERATE_SCOPED_NAME(x, y) (strCreateFromFormat("%s$%d$%llx", x, y->scopeId, GENERATE_ID(y)))
 
 // Symbol stack
 
@@ -225,18 +231,23 @@ string *create_safe_string(string *s) {
 // parser generators
 
 int generate_prog_init(Parser parser) {
+    builtinInit(&builtins);
+
+    ADD_BUILTIN(inputs);
+    ADD_BUILTIN(inputi);
+    ADD_BUILTIN(inputf);
+    ADD_BUILTIN(int2float);
+    ADD_BUILTIN(float2int);
+    ADD_BUILTIN(len);
+    ADD_BUILTIN(substr);
+    ADD_BUILTIN(ord);
+    ADD_BUILTIN(chr);
+
     stackInit(&scope_stack);
     ss_init(&symbol_stack);
     ll_init(&hook_list);
     if (tac_list_init(&list))
         return 1;
-    if (tac_append_line(&list, tac_create(TAC_JUMP,
-                                          (TAC_addr) {ADDR_RAWSTRING, .data.string=strCreate("_start")},
-                                          TACNONE,
-                                          TACNONE))) {
-        tac_list_free(&list);
-        return 1;
-    }
     stackPush(&scope_stack, scope_counter);
     scope_counter++;
     return 0;
@@ -433,6 +444,20 @@ int generate_void_func_call(Parser parser) {
     string *name = GENERATE_NAME("func", parser->calledFunc);
     if (!name)
         return 1;
+
+    Builtin *builtin = getBuiltin(&builtins, name);
+    if(builtin){
+        builtin->used = true;
+        if (tac_append_line(&list, tac_create(TAC_CALL,
+                                              (TAC_addr) {ADDR_RAWSTRING, .data.string=strCreateCopy(builtin->name)},
+                                              TACNONE,
+                                              TACNONE))) {
+            free(name);
+            return 1;
+        }
+        free(name);
+        return 0;
+    }
 
     tSymtableData print = symtableRead(&parser->sGlobal, "print");
     if (!print)
@@ -872,8 +897,12 @@ printf("PUSHS "); \
 print_addr(op);
 
 int generate() {
-    printf(".IFJcode20\nDEFVAR GF@devnull\n");
-    generate_from_list(&list);
+    printf(".IFJcode20\nDEFVAR GF@devnull\nJUMP _start\n");
+    for (Builtin *builtin = builtins.head; builtin; builtin = builtin->next)
+        if (builtin->used)
+            puts(builtin->content->str);
+    if (generate_from_list(&list))
+        return 1;
     return 0;
 }
 

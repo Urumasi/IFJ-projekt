@@ -22,6 +22,7 @@
 #include "symtable.h"
 #include "stack.h"
 #include "str.h"
+#include "error.h"
 
 typedef struct parser
 {
