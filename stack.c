@@ -16,19 +16,38 @@
 #include "stack.h"
 #include "expression.h"
 
+/**
+ * @brief Inicialization of stack
+ * @param stack Stack to be inicialized
+ */
 void stackInit(tStack* stack){
 	stack->top = NULL;
 }
 
+/**
+ * @brief Dispose whole stack
+ * @param stack Stack to be disposed
+ */
 void stackDispose(tStack* stack){
 	while (!stackPop(stack));
 }
 
+/**
+ * @brief Return top item from stack
+ * @param stack Stack
+ * @return Item on top of the stack
+ */
 tItemPtr* stackTop(tStack* stack){
 	tItemPtr *tmp = stack->top;
 	return tmp;
 }
 
+/**
+ * @brief Push value into the stack
+ * @param stack Stack
+ * @param Value to be pushed
+ * @return Function returns 1 if allocation failed otherwise returns 0
+ */
 int stackPush(tStack* stack, int value){
 	tItemPtr *item = malloc(sizeof(tItemPtr));
 	
@@ -42,6 +61,12 @@ int stackPush(tStack* stack, int value){
 	return 0;
 }
 
+/**
+ * @brief Insert value after first term, skipping HANDLE.
+ * @param stack Stack
+ * @param value Value to be inserted
+ * @return Function returns 1 if allocation failed otherwise returns 0
+ */
 int stackInsertAfterTerm(tStack* stack, int value){
 	tItemPtr *tmp = stack->top;
 	tItemPtr *prev = NULL;
@@ -70,6 +95,11 @@ int stackInsertAfterTerm(tStack* stack, int value){
 	return 0;
 }
 
+/**
+ * @brief Pop first item in stack
+ * @param stack Stack
+ * @return Function returns 1 if stack is empty failed otherwise returns 0
+ */
 int stackPop(tStack* stack){
 	tItemPtr *item = NULL;
 

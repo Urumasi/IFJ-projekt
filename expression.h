@@ -1,9 +1,9 @@
 /**
  * IFJ Project 2020: Team 008, variant II
  * 
- * @file expression.c
+ * @file expression.h
  * 
- * @brief
+ * @brief Header file for expression.h
  *
  * 
  * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
