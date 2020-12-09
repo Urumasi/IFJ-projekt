@@ -3,7 +3,7 @@
  * 
  * @file symtable.h
  * 
- * @brief
+ * @brief Header file for symtable.c
  *
  * 
  * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>

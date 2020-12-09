@@ -3,7 +3,7 @@
  * 
  * @file expression.c
  * 
- * @brief
+ * @brief Syntax analysis for expressions
  *
  * 
  * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
@@ -36,12 +36,23 @@ const char prec_table[TABLE_SIZE][TABLE_SIZE] = {
 	{'<','<','<','-','<','<','-'},	// $
 };
 
+/**
+ * @brief Cleanup function that frees stack
+ * @param parser parser structure
+ * @param error returned error from expression
+ * @return return error parameter
+ */
 int cleanup(Parser parser, int error) {
 	stackDispose(&stack);
 	parser->tokenProcessed = false;
 	return error;
 }
 
+/**
+ * @brief Covnert symbol to index of precdence table
+ * @param symbol symbol to be converted
+ * @return Function returns index of precedence table
+ */
 int getIndexFromSymbol(Prec_symbol symbol) {
 	if (symbol == PLUS || symbol == MINUS) {
 		return I_PLUS_MINUS;
@@ -60,6 +71,11 @@ int getIndexFromSymbol(Prec_symbol symbol) {
 	}
 }
 
+/**
+ * @brief Covnert token to index of precdence table
+ * @param parser structure of parser where token is stored
+ * @return Function returns index of precedence table
+ */
 int getIndexFromToken(Parser parser) {
 	if (isType(TOKEN_PLUS) || isType(TOKEN_MINUS)) {
 		return I_PLUS_MINUS;
@@ -76,6 +92,11 @@ int getIndexFromToken(Parser parser) {
 	}else return I_DOLAR;
 }
 
+/**
+ * @brief Covnert token to symbol
+ * @param parser structure of parser where token is stored
+ * @return Function returns converted symbol
+ */
 int getSymbolFromToken(Parser parser) {	
 	if (isType(TOKEN_PLUS)) {
 		return PLUS;
@@ -112,6 +133,12 @@ int getSymbolFromToken(Parser parser) {
 	}else return DOLAR;
 }
 
+/**
+ * @brief Check if expression can be reduced using rules
+ * @param count How many characters to be reduced
+ * @param parser Structure of parser
+ * @return Function return ERROR_CODE_OK if rule exists or error code depending on what failed. 
+ */
 int checkRule(int count, Parser parser){
 	if (count == 1) {
 		if (stack.top->data == ID || stack.top->data == INT || stack.top->data == FLOAT || stack.top->data == STRING) {
@@ -138,6 +165,11 @@ int checkRule(int count, Parser parser){
 	return ERROR_SYN;
 }
 
+/**
+ * @brief Reduce expression on stack to NON_TERM
+ * @param parser Structure of parser
+ * @return Function return error code depending if there was some error or everything passed ok.
+ */
 int reduce(Parser parser) {
 	tItemPtr *tmp = stackTop(&stack);;
 	int count = 0;
@@ -163,6 +195,14 @@ int reduce(Parser parser) {
 	return ERROR_CODE_OK;
 }
 
+
+/**
+ * @brief Checks if all types are the same, basic division of zero and other semantic things.
+ * @param firstToken If token is first token
+ * @param divide If previous token was divide
+ * @param parser Structure of parser
+ * @return Function return error code
+ */
 int checkSemantic(bool firstToken, bool *divide, Parser parser)
 {
 	if (isType(TOKEN_INT))
@@ -234,6 +274,11 @@ int checkSemantic(bool firstToken, bool *divide, Parser parser)
 	return ERROR_CODE_OK;
 }
 
+/**
+ * @brief Syntax and semantic analysis for expressions
+ * @param parser Structure of parser
+ * @return Function return error code
+ */
 int expression(Parser  parser) {
 	stackInit(&stack);
 	char index;

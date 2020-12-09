@@ -3,7 +3,7 @@
  * 
  * @file symtable.c
  * 
- * @brief
+ * @brief Implementation of hash table used for semantic analysis
  *
  * 
  * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
@@ -22,6 +22,11 @@
 
 int symtableSIZE = MAX_SYMSIZE;
 
+/**
+ * @brief Hash function
+ * @param key Identificator
+ * @return Index in symtable
+ */
 int hashCode(tKey key)
 {
     int retval = 1;
@@ -31,6 +36,10 @@ int hashCode(tKey key)
     return (retval % symtableSIZE);
 }
 
+/**
+ * @brief Inicialization of symtable
+ * @param ptrht Symtable to be inicialized
+ */
 void symtableInit(tSymtable *ptrht)
 {
     for (int i = 0; i < symtableSIZE; i++)
@@ -39,6 +48,12 @@ void symtableInit(tSymtable *ptrht)
     }
 }
 
+/**
+ * @brief Search symtable for key
+ * @param ptrht Symtable to be searched
+ * @param key Key to search for
+ * @return Function returns item if it's found else returns NULL
+ */
 tSymtableItem *symtableSearch(tSymtable *ptrht, tKey key)
 {
     tSymtableItem *item = (*ptrht)[hashCode(key)];
@@ -51,6 +66,13 @@ tSymtableItem *symtableSearch(tSymtable *ptrht, tKey key)
     return NULL;
 }
 
+/**
+ * @brief Insert key into the symtable
+ * @param ptrht Symtable
+ * @param key Key to insert
+ * @return Return item->data if key already exists in symtable, newItem->data if we inserted new key
+ *          or NULL if allocation failed
+ */
 tSymtableData symtableInsert(tSymtable *ptrht, tKey key)
 {
     tSymtableItem *item = symtableSearch(ptrht, key);
@@ -85,6 +107,12 @@ tSymtableData symtableInsert(tSymtable *ptrht, tKey key)
     }
 }
 
+/**
+ * @brief Lookup key in symtable
+ * @param key Key to look for
+ * @param ptrht Symtable
+ * @return Data of key in symtable or NULL if key wasn't found
+ */
 tSymtableData symtableRead(tSymtable *ptrht, tKey key)
 {
     tSymtableItem *item = symtableSearch(ptrht, key);
@@ -96,6 +124,12 @@ tSymtableData symtableRead(tSymtable *ptrht, tKey key)
     }
 }
 
+/**
+ * @brief Lookup key in symstack
+ * @param key Key to look for
+ * @param ptrht Symtable
+ * @return Data of key in symstack or NULL if key wasn't found
+ */
 tSymtableData symtableReadStack(tSymStack *ptrht, tKey key)
 {
     tSymStackItem *stackItem = ptrht->top;
@@ -108,6 +142,10 @@ tSymtableData symtableReadStack(tSymStack *ptrht, tKey key)
     return symItem ? symItem->data : NULL;
 }
 
+/**
+ * @brief Clear the while symtable
+ * @param ptrht Symtable
+ */
 void symtableClearAll(tSymtable *ptrht)
 {
     for (size_t i = 0; i < symtableSIZE; i++)
@@ -129,22 +167,40 @@ void symtableClearAll(tSymtable *ptrht)
 
 // SYMSTACK
 
+/**
+ * @brief Inicialization of stack
+ * @param symstack Stack to be inicialized
+ */
 void symStackInit(tSymStack *symStack)
 {
     symStack->top = NULL;
     symStack->scopeCount = 0;
 }
 
+/**
+ * @brief Dispose whole stack
+ * @param symstack Stack to be disposed
+ */
 void symStackDispose(tSymStack *symStack)
 {
     while (symStackPop(symStack)){}
 }
 
+/**
+ * @brief Check if stack is empty
+ * @param symstack Stack
+ * @return true if stack is empty, false if not
+ */
 bool symSymStackEmpty(tSymStack *symStack)
 {
     return !symStack->top;
 }
 
+/**
+ * @brief Push value into the stack
+ * @param stack Stack
+ * @return Function returns false if allocation failed otherwise returns true
+ */
 bool symStackPush(tSymStack *stack)
 {
     tSymStackItem *item = malloc(sizeof(struct tSymStackItem));
@@ -158,6 +214,11 @@ bool symStackPush(tSymStack *stack)
     return true;
 }
 
+/**
+ * @brief Pop first item in stack
+ * @param stack Stack
+ * @return Function returns false if stack is empty failed otherwise returns true
+ */
 bool symStackPop(tSymStack *stack)
 {
     tSymStackItem *item = NULL;
