@@ -22,8 +22,10 @@
 #include "taclist.h"
 
 #define generate_code(code_type) \
+do{ \
     if (generate_ ## code_type (parser)) \
-    return ERROR_INTERNAL;
+        return ERROR_INTERNAL; \
+} while (0)
 
 #define GENERATE_ID(x) ((unsigned long long)((void*)(x) - (void*)parser))
 #define GENERATE_NAME(x, y) (strCreateFromFormat("%s$%llx", x, GENERATE_ID(y)))

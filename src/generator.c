@@ -27,14 +27,16 @@ unsigned int for_depth = 0;
 
 Builtin_list builtins;
 
-#define ADD_BUILTIN(key) symReadGlobal(#key); \
-if (addBuiltin(&builtins, #key, BUILTIN_ ## key, GENERATE_NAME("func", parser->currentFunc))){ \
-    builtinFree(&builtins); \
-    return 1; \
-};
+#define ADD_BUILTIN(key) \
+do{ \
+    symReadGlobal(#key); \
+    if (addBuiltin(&builtins, #key, BUILTIN_ ## key, GENERATE_NAME("func", parser->currentFunc))){ \
+        builtinFree(&builtins); \
+        return 1; \
+    }; \
+} while (0)
 
-#define TACNONE (TAC_addr) {ADDR_NONE, 0}
-
+#define TACNONE ((TAC_addr) {ADDR_NONE, 0})
 
 // Symbol stack
 
@@ -421,7 +423,7 @@ int generate_void_func_call(Parser parser) {
         return 1;
 
     Builtin *builtin = getBuiltin(&builtins, name);
-    if(builtin){
+    if (builtin) {
         builtin->used = true;
         if (tac_append_line(&list, tac_create(TAC_CALL,
                                               (TAC_addr) {ADDR_RAWSTRING, .data.string=strCreateCopy(builtin->name)},
@@ -853,23 +855,27 @@ int print_addr(TAC_addr *addr) {
 }
 
 #define GENERATE_OP_GEN(op) \
-if(tac->destination->type == ADDR_OTUVAR){ \
-    printf("DEFVAR "); \
+do { \
+    if(tac->destination->type == ADDR_OTUVAR){ \
+        printf("DEFVAR "); \
+        print_addr(tac->destination); \
+        printf("\n"); \
+    } \
+    printf(#op " "); \
     print_addr(tac->destination); \
-    printf("\n"); \
-} \
-printf(#op " "); \
-print_addr(tac->destination); \
-printf(" "); \
-print_addr(tac->operand1); \
-printf(" "); \
-print_addr(tac->operand2);
+    printf(" "); \
+    print_addr(tac->operand1); \
+    printf(" "); \
+    print_addr(tac->operand2); \
+} while (0)
 
 #define GENERATE_PUSH(op) \
-if (op->type == ADDR_STACK) \
-    continue; \
-printf("PUSHS "); \
-print_addr(op);
+do { \
+    if (op->type == ADDR_STACK) \
+        continue; \
+    printf("PUSHS "); \
+    print_addr(op); \
+} while (0)
 
 int generate() {
     printf(".IFJcode20\nDEFVAR GF@devnull\nJUMP _start\n");
@@ -887,61 +893,61 @@ int generate_from_list(TAC_list *tlist) {
         tac = tac_get_line(tlist, idx);
         switch (tac->type) {
             case TAC_ADD:
-            GENERATE_OP_GEN(ADD);
+                GENERATE_OP_GEN(ADD);
                 break;
             case TAC_SUB:
-            GENERATE_OP_GEN(SUB);
+                GENERATE_OP_GEN(SUB);
                 break;
             case TAC_MUL:
-            GENERATE_OP_GEN(MUL);
+                GENERATE_OP_GEN(MUL);
                 break;
             case TAC_DIV:
-            GENERATE_OP_GEN(DIV);
+                GENERATE_OP_GEN(DIV);
                 break;
             case TAC_IDIV:
-            GENERATE_OP_GEN(IDIV);
+                GENERATE_OP_GEN(IDIV);
                 break;
             case TAC_CONCAT:
-            GENERATE_OP_GEN(CONCAT);
+                GENERATE_OP_GEN(CONCAT);
                 break;
             case TAC_LESSER:
-            GENERATE_PUSH(tac->operand1);
+                GENERATE_PUSH(tac->operand1);
                 printf("\n");
                 GENERATE_PUSH(tac->operand2);
                 printf("\nLTS");
                 break;
             case TAC_LESS_OR_EQ:
-            GENERATE_PUSH(tac->operand1);
+                GENERATE_PUSH(tac->operand1);
                 printf("\n");
                 GENERATE_PUSH(tac->operand2);
                 printf("\nGTS\nNOTS");
                 break;
             case TAC_GREATER:
-            GENERATE_PUSH(tac->operand1);
+                GENERATE_PUSH(tac->operand1);
                 printf("\n");
                 GENERATE_PUSH(tac->operand2);
                 printf("\nGTS");
                 break;
             case TAC_GRT_OR_EQ:
-            GENERATE_PUSH(tac->operand1);
+                GENERATE_PUSH(tac->operand1);
                 printf("\n");
                 GENERATE_PUSH(tac->operand2);
                 printf("\nLTS\nNOTS");
                 break;
             case TAC_EQUAL:
-            GENERATE_PUSH(tac->operand1);
+                GENERATE_PUSH(tac->operand1);
                 printf("\n");
                 GENERATE_PUSH(tac->operand2);
                 printf("\nEQS");
                 break;
             case TAC_NOT_EQUAL:
-            GENERATE_PUSH(tac->operand1);
+                GENERATE_PUSH(tac->operand1);
                 printf("\n");
                 GENERATE_PUSH(tac->operand2);
                 printf("\nEQS\nNOTS");
                 break;
             case TAC_PUSH:
-            GENERATE_PUSH(tac->operand1);
+                GENERATE_PUSH(tac->operand1);
                 break;
             case TAC_ASSIGN:
                 if (tac->destination->type == ADDR_DISCARD) {
