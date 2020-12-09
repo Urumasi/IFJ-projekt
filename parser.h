@@ -31,7 +31,6 @@ typedef struct parser
     string id;
     int returnCode;
     bool tokenProcessed;
-    bool declaredMain;
     bool missingReturn;
     bool funcInExpr;
     DataType exprType;

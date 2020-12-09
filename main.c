@@ -43,11 +43,14 @@ int main(int argc, char *argv[])
     int error;
     error = parse();
 
-    if(generate())
+    if(error == 0)
     {
-        error = ERROR_INTERNAL;
+        if(generate())
+        {
+            error = ERROR_INTERNAL;
+        }
+        generate_free();
     }
-    generate_free();
 
     fprintf(stderr, "Program returned %d\n", error);
 
