@@ -15,10 +15,20 @@
 #include "builtin.h"
 #include "generator.h"
 
+/**
+ * @brief
+ *
+ * @param list
+ */
 void builtinInit(Builtin_list *list) {
     list->head = NULL;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ */
 void builtinFree(Builtin_list *list) {
     if (!list || !list->head)
         return;
@@ -35,6 +45,15 @@ void builtinFree(Builtin_list *list) {
     }
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @param name
+ * @param content
+ * @param malformed_name
+ * @return
+ */
 int addBuiltin(Builtin_list *list, const char *name, const char *content, string *malformed_name) {
     if (!list || !name || !content)
         return 1;
@@ -60,6 +79,13 @@ int addBuiltin(Builtin_list *list, const char *name, const char *content, string
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @param name
+ * @return
+ */
 Builtin *getBuiltin(Builtin_list *list, string *name) {
     if (!list || !name)
         return NULL;

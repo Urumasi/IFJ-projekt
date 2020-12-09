@@ -15,6 +15,12 @@
 #include "taclist.h"
 #include <malloc.h>
 
+/**
+ * @brief
+ *
+ * @param list
+ * @return
+ */
 int tac_list_init(TAC_list *list) {
     list->head = NULL;
     list->tail = NULL;
@@ -25,6 +31,11 @@ int tac_list_init(TAC_list *list) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ */
 void tac_list_free(TAC_list *list) {
     if (!list->head)
         return;
@@ -47,6 +58,12 @@ void tac_list_free(TAC_list *list) {
     } while (next_block);
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @return
+ */
 int tac_list_append_new_block(TAC_list *list) {
     if (!list)
         return 1;
@@ -63,6 +80,12 @@ int tac_list_append_new_block(TAC_list *list) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param tac
+ * @return
+ */
 int tac_init(TAC *tac) {
     tac->type = ADDR_NONE;
     if (!(tac->destination = malloc(sizeof(TAC_addr)))) {
@@ -80,6 +103,11 @@ int tac_init(TAC *tac) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param tac
+ */
 void tac_free(TAC *tac) {
     tac_addr_free(tac->destination);
     free(tac->destination);
@@ -98,6 +126,15 @@ void tac_addr_free(TAC_addr *addr) {
     }
 }
 
+/**
+ * @brief
+ *
+ * @param type
+ * @param dest
+ * @param op1
+ * @param op2
+ * @return
+ */
 TAC *tac_create(InstructionType type, TAC_addr dest, TAC_addr op1, TAC_addr op2) {
     TAC *tac = malloc(sizeof(TAC));
     if (!tac)
@@ -130,6 +167,13 @@ TAC *tac_create(InstructionType type, TAC_addr dest, TAC_addr op1, TAC_addr op2)
     return tac;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @param idx
+ * @return
+ */
 TAC *tac_get_line(TAC_list *list, const unsigned int idx) {
     if (!list || !list->head || idx >= list->length) {
         return NULL;
@@ -161,6 +205,13 @@ TAC *tac_get_line(TAC_list *list, const unsigned int idx) {
     return block->data[idx % TAC_COUNT_PER_ALLOC];
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @param tac
+ * @return
+ */
 int tac_append_line(TAC_list *list, TAC *tac) {
     if (!list || !tac)
         return 1;

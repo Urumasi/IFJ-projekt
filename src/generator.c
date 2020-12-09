@@ -40,12 +40,22 @@ do{ \
 
 // Symbol stack
 
+/**
+ * @brief
+ *
+ * @param stack
+ */
 void ss_init(sstack *stack) {
     stack->head = NULL;
     stack->tail = NULL;
     stack->length = 0;
 }
 
+/**
+ * @brief
+ *
+ * @param stack
+ */
 void ss_free(sstack *stack) {
     if (!stack || !stack->head)
         return;
@@ -59,6 +69,13 @@ void ss_free(sstack *stack) {
     stack->length = 0;
 }
 
+/**
+ * @brief
+ *
+ * @param stack
+ * @param data
+ * @return
+ */
 int ss_push(sstack *stack, TAC_addr *data) {
     if (!stack || !data)
         return 1;
@@ -78,6 +95,13 @@ int ss_push(sstack *stack, TAC_addr *data) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param stack
+ * @param data
+ * @return
+ */
 int ss_push_copy(sstack *stack, TAC_addr data) {
     TAC_addr *addr = malloc(sizeof(TAC_addr));
     if (!addr)
@@ -100,6 +124,12 @@ int ss_push_copy(sstack *stack, TAC_addr data) {
     return ss_push(stack, addr);
 }
 
+/**
+ * @brief
+ *
+ * @param stack
+ * @return
+ */
 TAC_addr *ss_pop(sstack *stack) {
     if (!stack || ss_empty(stack))
         return NULL;
@@ -115,18 +145,34 @@ TAC_addr *ss_pop(sstack *stack) {
     return data;
 }
 
+/**
+ * @brief
+ *
+ * @param stack
+ * @return
+ */
 bool ss_empty(sstack *stack) {
     return !stack->length;
 }
 
 // TAC_list list
 
+/**
+ * @brief
+ *
+ * @param list
+ */
 void ll_init(TAC_ll *list) {
     list->head = NULL;
     list->tail = NULL;
     list->length = 0;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ */
 void ll_free(TAC_ll *list) {
     if (!list || !list->head)
         return;
@@ -141,6 +187,13 @@ void ll_free(TAC_ll *list) {
     list->length = 0;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @param data
+ * @return
+ */
 int ll_append(TAC_ll *list, TAC_list *data) {
     if (!list || !data)
         return 1;
@@ -158,6 +211,13 @@ int ll_append(TAC_ll *list, TAC_list *data) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @param id
+ * @return
+ */
 TAC_list *ll_get(TAC_ll *list, unsigned int id) {
     if (!list || id >= list->length)
         return NULL;
@@ -167,6 +227,12 @@ TAC_list *ll_get(TAC_ll *list, unsigned int id) {
     return item->data;
 }
 
+/**
+ * @brief
+ *
+ * @param list
+ * @return
+ */
 TAC_list *ll_last(TAC_ll *list) {
     if (!list)
         return NULL;
@@ -175,12 +241,22 @@ TAC_list *ll_last(TAC_ll *list) {
 
 // Base functions
 
+/**
+ * @brief
+ *
+ */
 void generate_free() {
     tac_list_free(&list);
     ss_free(&symbol_stack);
     ll_free(&hook_list);
 }
 
+/**
+ * @brief
+ *
+ * @param s
+ * @return
+ */
 string *create_safe_string(string *s) {
     if (!s)
         return NULL;
@@ -207,6 +283,12 @@ string *create_safe_string(string *s) {
 
 // parser generators
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_prog_init(Parser parser) {
     builtinInit(&builtins);
 
@@ -223,13 +305,21 @@ int generate_prog_init(Parser parser) {
     stackInit(&scope_stack);
     ss_init(&symbol_stack);
     ll_init(&hook_list);
-    if (tac_list_init(&list))
+    if (tac_list_init(&list)){
+        builtinFree(&builtins);
         return 1;
+    }
     stackPush(&scope_stack, scope_counter);
     scope_counter++;
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_prog_end(Parser parser) {
     string *name = GENERATE_NAME("func", parser->currentFunc);
     if (!name)
@@ -251,6 +341,12 @@ int generate_prog_end(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_push(Parser parser) {
     string *name;
     switch (parser->token.type) {
@@ -282,6 +378,12 @@ int generate_push(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_func(Parser parser) {
     string *name = GENERATE_NAME("func", parser->currentFunc);
     if (!name)
@@ -331,6 +433,12 @@ int generate_func(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_func_param(Parser parser) {
     string *name = GENERATE_SCOPED_NAME("var", parser->currentID);
     if (!name)
@@ -343,6 +451,12 @@ int generate_func_param(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_func_end(Parser parser) {
     if (parser->currentFunc->returnTypes.length) { // Should return something but reached end of func
         return tac_append_line(&list, tac_create(TAC_EXIT,
@@ -353,6 +467,12 @@ int generate_func_end(Parser parser) {
     return generate_return(parser);
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_return(Parser parser) {
     if (parser->currentFunc->returnTypes.length) {
         TAC_addr *addr;
@@ -381,6 +501,12 @@ int generate_return(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_stack_push(Parser parser) {
     TAC_addr addr;
     string *name;
@@ -416,6 +542,12 @@ int generate_stack_push(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_void_func_call(Parser parser) {
     unsigned long long called_id = GENERATE_ID(parser->calledFunc);
     string *name = GENERATE_NAME("func", parser->calledFunc);
@@ -470,6 +602,12 @@ int generate_void_func_call(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_func_call(Parser parser) {
     if (generate_void_func_call(parser))
         1;
@@ -487,6 +625,12 @@ int generate_func_call(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_define_var(Parser parser) {
     parser->currentID->scopeId = stackTop(&scope_stack)->data;
     string *name = GENERATE_SCOPED_NAME("var", parser->currentID);
@@ -540,6 +684,12 @@ int generate_define_var(Parser parser) {
     return ret;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_assign_push_id(Parser parser) {
     if (!strCmpConstStr(&parser->id, "_")) {
         return ss_push_copy(&symbol_stack, (TAC_addr) {ADDR_DISCARD, 0});
@@ -550,6 +700,12 @@ int generate_assign_push_id(Parser parser) {
     return ss_push_copy(&symbol_stack, (TAC_addr) {ADDR_VAR, .data.string=name});
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_assign(Parser parser) {
     unsigned int var_count = parser->typesLeft.length;
 
@@ -595,6 +751,12 @@ int generate_assign(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_if(Parser parser) {
     stackPush(&scope_stack, scope_counter);
     scope_counter++;
@@ -604,6 +766,12 @@ int generate_if(Parser parser) {
                                              TACNONE));
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_else(Parser parser) {
     stackPop(&scope_stack);
     stackPush(&scope_stack, scope_counter);
@@ -614,6 +782,12 @@ int generate_else(Parser parser) {
                                              TACNONE));
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_endif(Parser parser) {
     stackPop(&scope_stack);
     static int if_counter = 0;
@@ -651,6 +825,12 @@ int generate_endif(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_for_begin(Parser parser) {
     stackPush(&scope_stack, scope_counter);
     scope_counter++;
@@ -658,6 +838,12 @@ int generate_for_begin(Parser parser) {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_for_condition(Parser parser) {
     return tac_append_line(&list, tac_create(TAC_FOR_COND,
                                              (TAC_addr) {ADDR_INT, -1},
@@ -665,6 +851,12 @@ int generate_for_condition(Parser parser) {
                                              TACNONE));
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_for_assign(Parser parser) {
     return tac_append_line(&list, tac_create(TAC_FOR_ASSIGN,
                                              (TAC_addr) {ADDR_INT, -1},
@@ -672,6 +864,12 @@ int generate_for_assign(Parser parser) {
                                              TACNONE));
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_for(Parser parser) {
     stackPush(&scope_stack, scope_counter);
     scope_counter++;
@@ -681,6 +879,12 @@ int generate_for(Parser parser) {
                                              TACNONE));
 }
 
+/**
+ * @brief
+ *
+ * @param parser
+ * @return
+ */
 int generate_endfor(Parser parser) {
     static int for_counter = 0;
     stackPop(&scope_stack);
@@ -731,6 +935,13 @@ int generate_endfor(Parser parser) {
 
 // expression generators
 
+/**
+ * @brief
+ *
+ * @param symbol
+ * @param expr_type
+ * @return
+ */
 int generate_operation(Prec_symbol symbol, DataType expr_type) {
     static unsigned int tmp_counter = 0;
     TAC_addr *op1 = NULL;
@@ -827,6 +1038,12 @@ int generate_operation(Prec_symbol symbol, DataType expr_type) {
 
 //
 
+/**
+ * @brief
+ *
+ * @param addr
+ * @return
+ */
 int print_addr(TAC_addr *addr) {
     switch (addr->type) {
         case ADDR_NONE:
@@ -877,6 +1094,11 @@ do { \
     print_addr(op); \
 } while (0)
 
+/**
+ * @brief
+ *
+ * @return
+ */
 int generate() {
     printf(".IFJcode20\nDEFVAR GF@devnull\nJUMP _start\n");
     for (Builtin *builtin = builtins.head; builtin; builtin = builtin->next)
@@ -887,6 +1109,12 @@ int generate() {
     return 0;
 }
 
+/**
+ * @brief
+ *
+ * @param tlist
+ * @return
+ */
 int generate_from_list(TAC_list *tlist) {
     TAC *tac;
     for (unsigned int idx = 0; idx < tlist->length; ++idx) {
