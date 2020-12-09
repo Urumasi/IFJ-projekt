@@ -14,8 +14,7 @@
 
 #include <stdlib.h>
 #include "stack.h"
-
-#define HANDLE 17
+#include "expression.h"
 
 void stackInit(tStack* stack){
 	stack->top = NULL;
@@ -28,10 +27,6 @@ void stackDispose(tStack* stack){
 tItemPtr* stackTop(tStack* stack){
 	tItemPtr *tmp = stack->top;
 	return tmp;
-}
-
-bool stackEmpty(tStack* stack){
-	return !stack->top;
 }
 
 int stackPush(tStack* stack, int value){

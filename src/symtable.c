@@ -1,9 +1,24 @@
+/**
+ * IFJ Project 2020: Team 008, variant II
+ * 
+ * @file symtable.c
+ * 
+ * @brief
+ *
+ * 
+ * @author Martin Kneslík <xknesl02@stud.fit.vutbr.cz>
+ * @author Adriana Jurkechová <xjurke02@stud.fit.vutbr.cz>
+ * @author Karel Norek <xnorek01@stud.fit.vutbr.cz>
+ * @author Petr Salaba <xsalab00@stud.fit.vutbr.cz>
+ */
+
+// Tabulka symbolů je převzatá z 2. domácího úkolu v předmětu IAL a modifikována pro použítí v tomto projektu
+// Autor: Martin Kneslík (xknesl02)
 
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include "symtable.h"
-#include "error.h"
 
 int symtableSIZE = MAX_SYMSIZE;
 
@@ -122,9 +137,7 @@ void symStackInit(tSymStack *symStack)
 
 void symStackDispose(tSymStack *symStack)
 {
-    while (symStackPop(symStack))
-    {
-    }
+    while (symStackPop(symStack)){}
 }
 
 bool symSymStackEmpty(tSymStack *symStack)

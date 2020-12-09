@@ -29,7 +29,6 @@ typedef struct {
 void stackInit(tStack* stack);
 void stackDispose(tStack* stack);
 tItemPtr* stackTop(tStack* stack);
-bool stackEmpty(tStack* stack);
 int stackPush(tStack* stack, int value);
 int stackInsertAfterTerm(tStack* stack, int value);
 int stackPop(tStack* stack);
