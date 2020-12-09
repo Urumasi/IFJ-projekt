@@ -59,7 +59,13 @@ typedef enum {
 
 }Prec_index;
 
+int cleanup(Parser parser, int error);
 int getIndexFromSymbol(Prec_symbol symbol);
+int getIndexFromToken(Parser parser);
+int getSymbolFromToken(Parser parser);
+int checkRule(int count, Parser parser);
+int reduce(Parser parser);
+int checkSemantic(bool firstToken, bool *divide, Parser parser);
 int expression(Parser parser);
 
 #endif //__EXPRESSION_H__

@@ -15,83 +15,16 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdlib.h>
-#include "scanner.h"
+
 #include "parser.h"
 #include "expression.h"
-#include "error.h"
-#include "symtable.h"
 #include "generator.h"
 
-Parser parser;
-
-int addBuiltinFunc(char *key, char *argumentTypes, char *returnTypes, Parser parser)
-{
-    symInsertGlobal(key);
-    for (int i = 0; i < strlen(argumentTypes); i++)
-        strAddChar(&parser->currentFunc->argumentTypes, argumentTypes[i]);
-    for (int i = 0; i < strlen(returnTypes); i++)
-        strAddChar(&parser->currentFunc->returnTypes, returnTypes[i]);
-}
-
-DataType keywordToType(Keyword keyword)
-{
-    if (keyword == KW_INT)
-        return tINT;
-    else if (keyword == KW_FLOAT64)
-        return tFLOAT64;
-    else if (keyword == KW_STRING)
-        return tSTRING;
-    else
-        return tNONE;
-}
-
-char typeToChar(DataType type)
-{
-    if (type == tINT)
-        return '0';
-    else if (type == tFLOAT64)
-        return '1';
-    else if (type == tSTRING)
-        return '2';
-    else if (type == tNONE)
-        return '3';
-    else if (type == tMULTIPLE)
-        return '4';
-}
-
-bool compareTypes(string typesLeft, string typesRight)
-{
-    if (typesLeft.str[0] == typeToChar(tMULTIPLE))
-        return true;
-    if (typesLeft.length != typesRight.length)
-        return false;
-    for (int i = 0; i < typesLeft.length; i++)
-    {
-        if (typesLeft.str[i] == '3')
-            continue;
-        else if (typesLeft.str[i] != typesRight.str[i])
-            return false;
-    }
-    return true;
-}
-
-void addType(char type, string *typesList, tSymtableData data, Parser parser)
-{
-    if (data->typesSet)
-    {
-        if (parser->typeCounter >= typesList->length)
-            parser->returnCode = ERROR_SEM_PARAM;
-        if (typesList->str[parser->typeCounter] != type)
-            parser->returnCode = ERROR_SEM_PARAM;
-    }
-    else
-    {
-        strAddChar(typesList, type);
-        parser->returnCode = ERROR_CODE_OK;
-    }
-    parser->typeCounter++;
-}
-
+/**
+ * @brief initializes parser structure
+ *
+ * @return initialized structure
+ */
 Parser initParser()
 {
     Parser parser = malloc(sizeof(struct parser));
@@ -121,6 +54,11 @@ Parser initParser()
     return parser;
 }
 
+/**
+ * @brief Clears parser structure
+ *
+ * @param parser parser structure
+ */
 void deleteParser(Parser parser)
 {
     strFree(&parser->id);
@@ -132,7 +70,7 @@ void deleteParser(Parser parser)
 }
 
 /**
- * @brief Main function
+ * @brief Main function of Parser
  * 
  * @return Error code of parser
  */
@@ -147,6 +85,19 @@ int parse()
         if (parser->currentFunc->argumentTypes.length != 0 || parser->currentFunc->returnTypes.length != 0)
         {
             parser->returnCode = ERROR_SEM_PARAM;
+        }
+        for (int i = 0; i < MAX_SYMSIZE; i++)
+        {
+            tSymtableItem *item = parser->sGlobal[i];
+            while (item)
+            {
+                if (!item->data->defined)
+                {
+                    parser->returnCode = ERROR_SEM;
+                    break;
+                }
+                item = item->ptrnext;
+            }
         }
     }
     int returnCode = parser->returnCode;
@@ -256,7 +207,6 @@ int params(Parser parser)
  */
 int type(Parser parser)
 {
-    // TODO - semantic
     getToken();
     if (isKeyword(KW_INT) || isKeyword(KW_FLOAT64) || isKeyword(KW_STRING))
     {
@@ -700,11 +650,6 @@ int func(Parser parser)
             return ERROR_SEM_PARAM;
         strCopyString(&parser->typesRight, &parser->calledFunc->returnTypes);
     }
-    // <func> -> ε
-    // else if (isType(TOKEN_LCURLYBRACKET) || isType(TOKEN_EOL))
-    // {
-    //     parser->tokenProcessed = false;
-    // }
     returnRule();
 }
 
@@ -739,7 +684,6 @@ int arg(Parser parser)
  */
 int term(Parser parser)
 {
-    // TODO - semantic
     getToken();
     // <term> -> ID
     if (isType(TOKEN_IDENTIFIER))
@@ -812,4 +756,114 @@ int ret_values(Parser parser)
         getRule(value);
         return ERROR_CODE_OK;
     }
+}
+
+/**
+ * @brief Adds built-in function to global symtable
+ *
+ * @param key function name
+ * @param argumentTypes argument types in string form
+ * @param returnTypes return types in string form
+ * @param parser parser structure
+ * @return int
+ */
+int addBuiltinFunc(char *key, char *argumentTypes, char *returnTypes, Parser parser)
+{
+    symInsertGlobal(key);
+    for (int i = 0; i < strlen(argumentTypes); i++)
+        strAddChar(&parser->currentFunc->argumentTypes, argumentTypes[i]);
+    for (int i = 0; i < strlen(returnTypes); i++)
+        strAddChar(&parser->currentFunc->returnTypes, returnTypes[i]);
+}
+
+/**
+ * @brief Converts keyword enum to datatype enum
+ *
+ * @param keyword keyword to convert
+ * @return DataType enum
+ */
+DataType keywordToType(Keyword keyword)
+{
+    if (keyword == KW_INT)
+        return tINT;
+    else if (keyword == KW_FLOAT64)
+        return tFLOAT64;
+    else if (keyword == KW_STRING)
+        return tSTRING;
+    else
+        return tNONE;
+}
+
+/**
+ * @brief Converts datatype enum to type in char format
+ *
+ * @param type
+ * @return type as char
+ *           0 - int
+ *           1 - float64
+ *           2 - string
+ *           3 - none / underscore
+ *           4 - multiple
+ */
+char typeToChar(DataType type)
+{
+    if (type == tINT)
+        return '0';
+    else if (type == tFLOAT64)
+        return '1';
+    else if (type == tSTRING)
+        return '2';
+    else if (type == tNONE)
+        return '3';
+    else if (type == tMULTIPLE)
+        return '4';
+}
+
+/**
+ * @brief Compares two data types in string format
+ *
+ * @param typesLeft data type in string format
+ * @param typesRight data type in string format
+ * @return true if types match
+ * @return false if types dont match
+ */
+bool compareTypes(string typesLeft, string typesRight)
+{
+    if (typesLeft.str[0] == typeToChar(tMULTIPLE))
+        return true;
+    if (typesLeft.length != typesRight.length)
+        return false;
+    for (int i = 0; i < typesLeft.length; i++)
+    {
+        if (typesLeft.str[i] == '3')
+            continue;
+        else if (typesLeft.str[i] != typesRight.str[i])
+            return false;
+    }
+    return true;
+}
+
+/**
+ * @brief Adds type in char format to list of types in string format
+ *
+ * @param type type in char format
+ * @param typesList list of types in string format
+ * @param data struct of symtable data that contains list of types
+ * @param parser parser structure
+ */
+void addType(char type, string *typesList, tSymtableData data, Parser parser)
+{
+    if (data->typesSet)
+    {
+        if (parser->typeCounter >= typesList->length)
+            parser->returnCode = ERROR_SEM_PARAM;
+        if (typesList->str[parser->typeCounter] != type)
+            parser->returnCode = ERROR_SEM_PARAM;
+    }
+    else
+    {
+        strAddChar(typesList, type);
+        parser->returnCode = ERROR_CODE_OK;
+    }
+    parser->typeCounter++;
 }

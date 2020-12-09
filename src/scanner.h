@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#include "error.h"
 #include "str.h"
 
 /**
