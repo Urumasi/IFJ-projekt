@@ -150,9 +150,8 @@ int prog(Parser parser)
         getRule(body);
         getType(TOKEN_RCURLYBRACKET);
         getType(TOKEN_EOL);
-        // TODO - return can be in if/else
-        // if (parser->missingReturn)
-        //     return ERROR_SEM_PARAM;
+        if (parser->missingReturn)
+            return ERROR_SEM_PARAM;
         symStackPop(&parser->sLocal);
         getRule(prog);
     }
@@ -370,8 +369,7 @@ int body(Parser parser)
     // <body> -> RETURN <ret_values> EOL <body>
     else if (isKeyword(KW_RETURN))
     {
-        if (parser->sLocal.scopeCount == 1)
-            parser->missingReturn = false;
+        parser->missingReturn = false;
         parser->typeCounter = 0;
         getRule(ret_values);
         if (!compareTypes(parser->typesRight, parser->currentFunc->returnTypes))
@@ -666,7 +664,7 @@ int term(Parser parser)
     if (isType(TOKEN_IDENTIFIER))
     {
         if (!strCmpConstStr(parser->token.attribute.string, "_"))
-            return ERROR_SEM_OTHER;
+            return ERROR_SEM;
         strCopyString(&parser->id, parser->token.attribute.string);
         symReadLocal(parser->token.attribute.string->str);
         strAddChar(&parser->typesRight, typeToChar(parser->currentID->type));
@@ -811,7 +809,7 @@ bool compareTypes(string typesLeft, string typesRight)
         return false;
     for (int i = 0; i < typesLeft.length; i++)
     {
-        if (typesLeft.str[i] == '3')
+        if (typesLeft.str[i] == typeToChar(tNONE))
             continue;
         else if (typesLeft.str[i] != typesRight.str[i])
             return false;

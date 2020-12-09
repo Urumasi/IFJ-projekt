@@ -190,7 +190,7 @@ int checkSemantic(bool firstToken, bool *divide, Parser parser)
 	else if (isType(TOKEN_IDENTIFIER))
 	{
 		if (!strCmpConstStr(parser->token.attribute.string, "_"))
-			return ERROR_SEM_OTHER;
+			return ERROR_SEM;
 		parser->currentID = symtableReadStack(&parser->sLocal, parser->token.attribute.string->str);
 		if (parser->currentID == NULL)
 		{
