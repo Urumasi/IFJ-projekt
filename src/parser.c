@@ -151,7 +151,6 @@ int parse()
     }
     int returnCode = parser->returnCode;
     deleteParser(parser);
-    //print_taclist(); // TODO: remove debug
     return returnCode;
 }
 

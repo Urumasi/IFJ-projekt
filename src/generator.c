@@ -173,31 +173,6 @@ TAC_list *ll_last(TAC_ll *list) {
 
 // Base functions
 
-void print_taclist() {
-    printf("=== TACLIST | length: %u\nLine | Instruction | destination, op1, op2\n===\n", list.length);
-    TAC *tac;
-    for (unsigned int i = 0; i < list.length; ++i) {
-        tac = tac_get_line(&list, i);
-        if (!tac) {
-            printf("%u | NULL\n", i);
-            continue;
-        }
-        printf("%3u | %3d | ", i, tac->type);
-        print_addr(tac->destination);
-        printf(", ");
-        print_addr(tac->operand1);
-        printf(", ");
-        print_addr(tac->operand2);
-        printf("\n");
-    }
-
-    printf("=== GENERATOR STACK | length: %u\n", symbol_stack.length);
-    for (sstack_item_ptr item = symbol_stack.head; item; item = item->next) {
-        print_addr(item->data);
-        printf("\n");
-    }
-}
-
 void generate_free() {
     tac_list_free(&list);
     ss_free(&symbol_stack);

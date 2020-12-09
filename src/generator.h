@@ -80,8 +80,6 @@ TAC_list *ll_last(TAC_ll *list);
 
 // Base function
 
-void print_taclist();
-
 void generate_free();
 
 string *create_safe_string(string *s);
