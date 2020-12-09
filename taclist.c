@@ -16,10 +16,10 @@
 #include <malloc.h>
 
 /**
- * @brief
+ * @brief Initialize TAC list
  *
- * @param list
- * @return
+ * @param list Allocated TAC list
+ * @return Exit code (0 = success)
  */
 int tac_list_init(TAC_list *list) {
     list->head = NULL;
@@ -32,9 +32,9 @@ int tac_list_init(TAC_list *list) {
 }
 
 /**
- * @brief
+ * @brief Free TAC list, does not free the pointer itself
  *
- * @param list
+ * @param list The TAC list
  */
 void tac_list_free(TAC_list *list) {
     if (!list->head)
@@ -59,10 +59,10 @@ void tac_list_free(TAC_list *list) {
 }
 
 /**
- * @brief
+ * @brief Append new TAC block to the TAC list
  *
- * @param list
- * @return
+ * @param list The TAC list
+ * @return Exit code (0 = success)
  */
 int tac_list_append_new_block(TAC_list *list) {
     if (!list)
@@ -81,10 +81,10 @@ int tac_list_append_new_block(TAC_list *list) {
 }
 
 /**
- * @brief
+ * @brief Initialize TAC instruction
  *
- * @param tac
- * @return
+ * @param tac Allocated TAC instruction
+ * @return Exit code (0 = success)
  */
 int tac_init(TAC *tac) {
     tac->type = ADDR_NONE;
@@ -104,9 +104,9 @@ int tac_init(TAC *tac) {
 }
 
 /**
- * @brief
+ * @brief Free TAC instruction, does not free the pointer itself
  *
- * @param tac
+ * @param tac The TAC instruction
  */
 void tac_free(TAC *tac) {
     tac_addr_free(tac->destination);
@@ -127,13 +127,13 @@ void tac_addr_free(TAC_addr *addr) {
 }
 
 /**
- * @brief
+ * @brief Quickly create a new TAC
  *
- * @param type
- * @param dest
- * @param op1
- * @param op2
- * @return
+ * @param type Type of the TAC instruction
+ * @param dest Destination symbol
+ * @param op1 First operand symbol
+ * @param op2 Second operand symbol
+ * @return Created TAC if success, otherwise NULL
  */
 TAC *tac_create(InstructionType type, TAC_addr dest, TAC_addr op1, TAC_addr op2) {
     TAC *tac = malloc(sizeof(TAC));
@@ -168,11 +168,11 @@ TAC *tac_create(InstructionType type, TAC_addr dest, TAC_addr op1, TAC_addr op2)
 }
 
 /**
- * @brief
+ * @brief Read a line from a TAC list
  *
- * @param list
- * @param idx
- * @return
+ * @param list The TAC list
+ * @param idx Index of the TAC read
+ * @return Retrieved TAC if succeeded, otherwise NULL
  */
 TAC *tac_get_line(TAC_list *list, const unsigned int idx) {
     if (!list || !list->head || idx >= list->length) {
@@ -206,11 +206,11 @@ TAC *tac_get_line(TAC_list *list, const unsigned int idx) {
 }
 
 /**
- * @brief
+ * @brief Append a TAC to the TAC list
  *
- * @param list
- * @param tac
- * @return
+ * @param list The TAC list
+ * @param tac The TAC instruction
+ * @return Exit code (0 = success)
  */
 int tac_append_line(TAC_list *list, TAC *tac) {
     if (!list || !tac)
