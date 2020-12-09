@@ -41,9 +41,9 @@ do{ \
 // Symbol stack
 
 /**
- * @brief
+ * @brief Initialize symbol stack
  *
- * @param stack
+ * @param stack Allocated symbol stack
  */
 void ss_init(sstack *stack) {
     stack->head = NULL;
@@ -52,9 +52,9 @@ void ss_init(sstack *stack) {
 }
 
 /**
- * @brief
+ * @brief Free symbol stack, will not free the pointer itself
  *
- * @param stack
+ * @param stack Stack to be freed
  */
 void ss_free(sstack *stack) {
     if (!stack || !stack->head)
@@ -70,11 +70,11 @@ void ss_free(sstack *stack) {
 }
 
 /**
- * @brief
+ * @brief Push data to the symbol stack
  *
- * @param stack
- * @param data
- * @return
+ * @param stack The symbol stack
+ * @param data Data to be pushed
+ * @return Exit code (0 = success)
  */
 int ss_push(sstack *stack, TAC_addr *data) {
     if (!stack || !data)
@@ -96,11 +96,11 @@ int ss_push(sstack *stack, TAC_addr *data) {
 }
 
 /**
- * @brief
+ * @brief Push data to the symbol stack while cloning the data
  *
- * @param stack
- * @param data
- * @return
+ * @param stack The symbol stack
+ * @param data Data to be cloned and pushed
+ * @return Exit code (0 = success)
  */
 int ss_push_copy(sstack *stack, TAC_addr data) {
     TAC_addr *addr = malloc(sizeof(TAC_addr));
@@ -125,10 +125,10 @@ int ss_push_copy(sstack *stack, TAC_addr data) {
 }
 
 /**
- * @brief
+ * @brief Pop from the symbol stack
  *
- * @param stack
- * @return
+ * @param stack The symbol stack
+ * @return Pointer to the popped data
  */
 TAC_addr *ss_pop(sstack *stack) {
     if (!stack || ss_empty(stack))
@@ -146,10 +146,10 @@ TAC_addr *ss_pop(sstack *stack) {
 }
 
 /**
- * @brief
+ * @brief Check if the symbol stack is empty
  *
- * @param stack
- * @return
+ * @param stack The symbol stack
+ * @return true if the stack is empty, otherwise false
  */
 bool ss_empty(sstack *stack) {
     return !stack->length;
@@ -158,9 +158,9 @@ bool ss_empty(sstack *stack) {
 // TAC_list list
 
 /**
- * @brief
+ * @brief Initialize TAC_list list
  *
- * @param list
+ * @param list Allocated TAC_list list
  */
 void ll_init(TAC_ll *list) {
     list->head = NULL;
@@ -169,9 +169,9 @@ void ll_init(TAC_ll *list) {
 }
 
 /**
- * @brief
+ * @brief Free TAC_list list, does not free the pointer itself
  *
- * @param list
+ * @param list The TAC_list list
  */
 void ll_free(TAC_ll *list) {
     if (!list || !list->head)
@@ -188,11 +188,11 @@ void ll_free(TAC_ll *list) {
 }
 
 /**
- * @brief
+ * @brief Append data to the end of a TAC_list list
  *
- * @param list
- * @param data
- * @return
+ * @param list The TAC_list list
+ * @param data Data to be appended
+ * @return Exit code (0 = success)
  */
 int ll_append(TAC_ll *list, TAC_list *data) {
     if (!list || !data)
@@ -212,11 +212,11 @@ int ll_append(TAC_ll *list, TAC_list *data) {
 }
 
 /**
- * @brief
+ * @brief Read a specific TAC_list from a TAC_list list
  *
- * @param list
- * @param id
- * @return
+ * @param list The TAC_list list to be read
+ * @param id Index of the item (0 <= id < length)
+ * @return Pointer to the retrieved data
  */
 TAC_list *ll_get(TAC_ll *list, unsigned int id) {
     if (!list || id >= list->length)
@@ -228,10 +228,10 @@ TAC_list *ll_get(TAC_ll *list, unsigned int id) {
 }
 
 /**
- * @brief
+ * @brief Read the last item of a TAC_list list
  *
- * @param list
- * @return
+ * @param list The TAC_list list to be read
+ * @return Pointer to the retrieved data
  */
 TAC_list *ll_last(TAC_ll *list) {
     if (!list)
@@ -242,20 +242,21 @@ TAC_list *ll_last(TAC_ll *list) {
 // Base functions
 
 /**
- * @brief
+ * @brief Free all data structures used by the code generator
  *
  */
 void generate_free() {
     tac_list_free(&list);
     ss_free(&symbol_stack);
     ll_free(&hook_list);
+    builtinFree(&builtins);
 }
 
 /**
- * @brief
+ * @brief Convert an unsafe string to a IFJcode20-safe string using escape sequences
  *
- * @param s
- * @return
+ * @param s The string to convert
+ * @return Converted string
  */
 string *create_safe_string(string *s) {
     if (!s)
@@ -284,10 +285,10 @@ string *create_safe_string(string *s) {
 // parser generators
 
 /**
- * @brief
+ * @brief Allocate all generator data structures and prepare it to run
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 == success)
  */
 int generate_prog_init(Parser parser) {
     builtinInit(&builtins);
@@ -305,7 +306,7 @@ int generate_prog_init(Parser parser) {
     stackInit(&scope_stack);
     ss_init(&symbol_stack);
     ll_init(&hook_list);
-    if (tac_list_init(&list)){
+    if (tac_list_init(&list)) {
         builtinFree(&builtins);
         return 1;
     }
@@ -315,12 +316,13 @@ int generate_prog_init(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate the end of the program and call main
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 == success)
  */
 int generate_prog_end(Parser parser) {
+    // main is currently in currentFunc
     string *name = GENERATE_NAME("func", parser->currentFunc);
     if (!name)
         return 1;
@@ -331,6 +333,7 @@ int generate_prog_end(Parser parser) {
         free(name);
         return 1;
     }
+    // CALL main
     if (tac_append_line(&list, tac_create(TAC_CALL,
                                           (TAC_addr) {ADDR_RAWSTRING, .data.string=name},
                                           TACNONE,
@@ -342,13 +345,13 @@ int generate_prog_end(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate a push of the current token to the symbol stack
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_push(Parser parser) {
-    string *name;
+    string *str;
     switch (parser->token.type) {
         case TOKEN_INT:
             if (ss_push_copy(&symbol_stack, (TAC_addr) {ADDR_INT, .data.integer=parser->token.attribute.integer}))
@@ -359,18 +362,24 @@ int generate_push(Parser parser) {
                 return 1;
             break;
         case TOKEN_STRING:
-            if (ss_push_copy(&symbol_stack,
-                             (TAC_addr) {ADDR_STRING, .data.string=create_safe_string(parser->token.attribute.string)}))
+            if(!(str = create_safe_string(parser->token.attribute.string)))
                 return 1;
+            if (ss_push_copy(&symbol_stack, (TAC_addr) {ADDR_STRING, .data.string=str})){
+                free(str);
+                return 1;
+            }
             break;
         case TOKEN_IDENTIFIER:
             if (!strCmpConstStr(parser->token.attribute.string, "_"))
-                break; // Parser will throw a semantic error
-            name = GENERATE_SCOPED_NAME("var", parser->currentID);
-            if (!name)
+                break; // Parser will now proceed to throw a semantic error
+            str = GENERATE_SCOPED_NAME("var", parser->currentID);
+            if (!str)
                 return 1;
-            if (ss_push_copy(&symbol_stack, (TAC_addr) {ADDR_VAR, .data.string=name}))
+            if (ss_push_copy(&symbol_stack, (TAC_addr) {ADDR_VAR, .data.string=str})) {
+                free(str);
                 return 1;
+            }
+            free(str);
             break;
         default:
             break;
@@ -379,10 +388,10 @@ int generate_push(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate the definition of a function
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_func(Parser parser) {
     string *name = GENERATE_NAME("func", parser->currentFunc);
@@ -392,10 +401,13 @@ int generate_func(Parser parser) {
     TAC_list *tacl = malloc(sizeof(TAC_list));
     if (!tacl)
         return 1;
-    if (tac_list_init(tacl))
+    if (tac_list_init(tacl)){
+        free(tacl);
         return 1;
+    }
     if (ll_append(&hook_list, tacl)) {
         tac_list_free(tacl);
+        free(tacl);
         return 1;
     }
 
@@ -434,10 +446,10 @@ int generate_func(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate function parameter on definition
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_func_param(Parser parser) {
     string *name = GENERATE_SCOPED_NAME("var", parser->currentID);
@@ -452,10 +464,10 @@ int generate_func_param(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate the ending of a function
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_func_end(Parser parser) {
     if (parser->currentFunc->returnTypes.length) { // Should return something but reached end of func
@@ -468,10 +480,10 @@ int generate_func_end(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate a return statement
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_return(Parser parser) {
     if (parser->currentFunc->returnTypes.length) {
@@ -502,10 +514,10 @@ int generate_return(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate a program stack push (PUSHS)
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_stack_push(Parser parser) {
     TAC_addr addr;
@@ -543,10 +555,10 @@ int generate_stack_push(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate a function call without considering return values
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_void_func_call(Parser parser) {
     unsigned long long called_id = GENERATE_ID(parser->calledFunc);
@@ -603,10 +615,10 @@ int generate_void_func_call(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate function call which accounts for return values
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_func_call(Parser parser) {
     if (generate_void_func_call(parser))
@@ -626,10 +638,10 @@ int generate_func_call(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate variable definition
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_define_var(Parser parser) {
     parser->currentID->scopeId = stackTop(&scope_stack)->data;
@@ -685,10 +697,10 @@ int generate_define_var(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Push the left hand side of a multiple assignment to the symbol stack
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_assign_push_id(Parser parser) {
     if (!strCmpConstStr(&parser->id, "_")) {
@@ -701,10 +713,10 @@ int generate_assign_push_id(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate an assignment
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_assign(Parser parser) {
     unsigned int var_count = parser->typesLeft.length;
@@ -752,10 +764,10 @@ int generate_assign(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate an if statement
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_if(Parser parser) {
     stackPush(&scope_stack, scope_counter);
@@ -767,10 +779,10 @@ int generate_if(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate the else branch of an if statement
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_else(Parser parser) {
     stackPop(&scope_stack);
@@ -783,17 +795,17 @@ int generate_else(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate the end of an if/else statement
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_endif(Parser parser) {
     stackPop(&scope_stack);
     static int if_counter = 0;
 
     if (list.length) {
-        // Claim unclaimed if and else codes and give them your ID
+        // Claim unclaimed if and else instructions and give them your ID
         unsigned int idx = list.length - 1;
         TAC *tac;
         for (; idx; --idx) {
@@ -826,10 +838,10 @@ int generate_endif(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate the beginning of a for statement
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_for_begin(Parser parser) {
     stackPush(&scope_stack, scope_counter);
@@ -839,10 +851,10 @@ int generate_for_begin(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate for statement between define and condition
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_for_condition(Parser parser) {
     return tac_append_line(&list, tac_create(TAC_FOR_COND,
@@ -852,10 +864,10 @@ int generate_for_condition(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate for statement between condition and assign
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_for_assign(Parser parser) {
     return tac_append_line(&list, tac_create(TAC_FOR_ASSIGN,
@@ -865,10 +877,10 @@ int generate_for_assign(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate start of for statement's body
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_for(Parser parser) {
     stackPush(&scope_stack, scope_counter);
@@ -880,10 +892,10 @@ int generate_for(Parser parser) {
 }
 
 /**
- * @brief
+ * @brief Generate the end of a for statement
  *
- * @param parser
- * @return
+ * @param parser The parser
+ * @return Exit code (0 = success)
  */
 int generate_endfor(Parser parser) {
     static int for_counter = 0;
@@ -892,7 +904,7 @@ int generate_endfor(Parser parser) {
     for_depth--;
 
     if (list.length) {
-        // Claim unclaimed for_cond, for_assign and for codes and give them your ID
+        // Claim unclaimed for_cond, for_assign and for instructions and give them your ID
         unsigned int idx = list.length - 1;
         TAC *tac;
         for (; idx; --idx) {
@@ -936,11 +948,11 @@ int generate_endfor(Parser parser) {
 // expression generators
 
 /**
- * @brief
+ * @brief Generate a binary operation
  *
- * @param symbol
- * @param expr_type
- * @return
+ * @param symbol Operator symbol
+ * @param expr_type Data type of the expression
+ * @return Exit code (0 = success)
  */
 int generate_operation(Prec_symbol symbol, DataType expr_type) {
     static unsigned int tmp_counter = 0;
@@ -1039,10 +1051,10 @@ int generate_operation(Prec_symbol symbol, DataType expr_type) {
 //
 
 /**
- * @brief
+ * @brief Writes a symbol to stdout
  *
- * @param addr
- * @return
+ * @param addr The symbol to write
+ * @return Exit code (0 = success)
  */
 int print_addr(TAC_addr *addr) {
     switch (addr->type) {
@@ -1079,11 +1091,14 @@ do { \
         printf("\n"); \
     } \
     printf(#op " "); \
-    print_addr(tac->destination); \
+    if(print_addr(tac->destination)) \
+        return 1; \
     printf(" "); \
-    print_addr(tac->operand1); \
+    if(print_addr(tac->operand1)) \
+        return 1; \
     printf(" "); \
-    print_addr(tac->operand2); \
+    if(print_addr(tac->operand2)) \
+        return 1; \
 } while (0)
 
 #define GENERATE_PUSH(op) \
@@ -1091,13 +1106,14 @@ do { \
     if (op->type == ADDR_STACK) \
         continue; \
     printf("PUSHS "); \
-    print_addr(op); \
+    if(print_addr(op)) \
+        return 1; \
 } while (0)
 
 /**
- * @brief
+ * @brief Start generation of the output code from generated TAC
  *
- * @return
+ * @return Exit code (0 = success)
  */
 int generate() {
     printf(".IFJcode20\nDEFVAR GF@devnull\nJUMP _start\n");
@@ -1110,10 +1126,10 @@ int generate() {
 }
 
 /**
- * @brief
+ * @brief Generate code from a specific TAC list
  *
- * @param tlist
- * @return
+ * @param tlist TAC list to generate code from
+ * @return Exit code (0 = success)
  */
 int generate_from_list(TAC_list *tlist) {
     TAC *tac;
@@ -1185,53 +1201,71 @@ int generate_from_list(TAC_list *tlist) {
                     }
                     continue;
                 }
-                if (tac->operand1->type != ADDR_STACK) {
-                    printf("PUSHS ");
-                    print_addr(tac->operand1);
-                    printf("\n");
+                if (tac->operand1->type == ADDR_STACK) {
+                    printf("POPS ");
+                    if(print_addr(tac->destination))
+                        return 1;
+                    break;
                 }
-                printf("POPS ");
-                print_addr(tac->destination);
+                printf("MOVE ");
+                if(print_addr(tac->destination))
+                    return 1;
+                printf(" ");
+                if(print_addr(tac->operand1))
+                    return 1;
                 break;
             case TAC_DEFINE:
                 printf("DEFVAR ");
-                print_addr(tac->destination);
+                if(print_addr(tac->destination))
+                    return 1;
                 if (tac->operand1->type == ADDR_NONE)
                     break;
-                if (tac->operand1->type != ADDR_STACK) {
-                    printf("\nPUSHS ");
-                    print_addr(tac->operand1);
+                if (tac->operand1->type == ADDR_STACK) {
+                    printf("\nPOPS ");
+                    if(print_addr(tac->destination))
+                        return 1;
+                    break;
                 }
-                printf("\nPOPS ");
-                print_addr(tac->destination);
+                printf("\nMOVE ");
+                if(print_addr(tac->destination))
+                    return 1;
+                printf(" ");
+                if(print_addr(tac->operand1))
+                    return 1;
                 break;
             case TAC_JUMP:
                 printf("JUMP ");
-                print_addr(tac->destination);
+                if(print_addr(tac->destination))
+                    return 1;
                 break;
             case TAC_CALL:
                 printf("CALL ");
-                print_addr(tac->destination);
+                if(print_addr(tac->destination))
+                    return 1;
                 break;
             case TAC_RETURN:
                 printf("POPFRAME\nRETURN");
                 break;
             case TAC_LABEL:
                 printf("LABEL ");
-                print_addr(tac->destination);
+                if(print_addr(tac->destination))
+                    return 1;
                 break;
             case TAC_EXIT:
                 printf("EXIT ");
-                print_addr(tac->operand1);
+                if(print_addr(tac->operand1))
+                    return 1;
                 break;
             case TAC_FUNC:
                 printf("LABEL ");
-                print_addr(tac->destination);
+                if(print_addr(tac->destination))
+                    return 1;
                 printf("\nCREATEFRAME\nPUSHFRAME");
                 break;
             case TAC_WRITE:
                 printf("WRITE ");
-                print_addr(tac->operand1);
+                if(print_addr(tac->operand1))
+                    return 1;
                 break;
             case TAC_IF:
                 printf("PUSHS bool@false\n"

@@ -14,8 +14,13 @@
 #define STR_ERROR   1
 #define STR_SUCCESS 0
 
+/**
+ * @brief Initialize a string
+ *
+ * @param s String to initialize
+ * @return Exit code (0 = success)
+ */
 int strInit(string *s)
-// funkce vytvori novy retezec
 {
    if ((s->str = (char*) malloc(STR_LEN_INC)) == NULL)
       return STR_ERROR;
@@ -25,14 +30,26 @@ int strInit(string *s)
    return STR_SUCCESS;
 }
 
+/**
+ * @brief Initialize a string and copy the content of another string
+ *
+ * @param s1 String to initialize
+ * @param s2 String to copy
+ * @return Exit code (0 = success)
+ */
 int strInitCopy(string *s1, string *s2)
-// kopirovaci konstruktor
 {
    return strInitFromConst(s1, s2->str);
 }
 
+/**
+ * @brief Initialize a string and copy a c-string into it
+ *
+ * @param s1 String to initialize
+ * @param s2 String to copy
+ * @return Exit code (0 = success)
+ */
 int strInitFromConst(string *s1, const char *s2)
-// funkce vytvori novy retezec s obsahem s2
 {
    if(!s1 || !s2)
        return STR_ERROR;
@@ -44,7 +61,16 @@ int strInitFromConst(string *s1, const char *s2)
    return STR_SUCCESS;
 }
 
-int strInitFromFormat(string *s, const char *fmt, ...){
+/**
+ * @brief Initialize a string and copy a formatted string into it
+ *
+ * @param s String to initialize
+ * @param fmt Formatting string
+ * @param ... Format variables
+ * @return Exit code (0 = success)
+ */
+int strInitFromFormat(string *s, const char *fmt, ...)
+{
     va_list args;
     va_start(args, fmt);
     char buffer[FORMAT_BUFFER_LENGTH];
@@ -53,7 +79,14 @@ int strInitFromFormat(string *s, const char *fmt, ...){
     return strInitFromConst(s, buffer);
 }
 
-string *strCreate(const char *s){
+/**
+ * @brief Quickly create a string with content of a c-string
+ *
+ * @param s String to copy
+ * @return Created string
+ */
+string *strCreate(const char *s)
+{
     string *out = malloc(sizeof(string));
     if(!out)
         return NULL;
@@ -65,7 +98,14 @@ string *strCreate(const char *s){
     return out;
 }
 
-string *strCreateCopy(string *s){
+/**
+ * @brief Quickly create a copy of a string
+ *
+ * @param s String to copy
+ * @return Created string
+ */
+string *strCreateCopy(string *s)
+{
     string *out = malloc(sizeof(string));
     if(!out)
         return NULL;
@@ -77,7 +117,15 @@ string *strCreateCopy(string *s){
     return out;
 }
 
-string *strCreateFromFormat(const char *fmt, ...){
+/**
+ * @brief Quickly create a string from a format
+ *
+ * @param fmt Formatting string
+ * @param ... Format variables
+ * @return Created string
+ */
+string *strCreateFromFormat(const char *fmt, ...)
+{
     string *out = malloc(sizeof(string));
     if(!out)
         return NULL;
@@ -94,8 +142,12 @@ string *strCreateFromFormat(const char *fmt, ...){
     return out;
 }
 
+/**
+ * @brief Free string content
+ *
+ * @param s The string
+ */
 void strFree(string *s)
-// funkce uvolni retezec z pameti
 {
     if(!s || !s->str)
         return;
@@ -103,15 +155,25 @@ void strFree(string *s)
     s->str = NULL;
 }
 
+/**
+ * @brief Clear a string's content
+ *
+ * @param s The string
+ */
 void strClear(string *s)
-// funkce vymaze obsah retezce
 {
    s->str[0] = '\0';
    s->length = 0;
 }
 
+/**
+ * @brief Append a single character to a string
+ *
+ * @param s1 The string
+ * @param c Char to append
+ * @return Exit code (0 = success)
+ */
 int strAddChar(string *s1, char c)
-// prida na konec retezce jeden znak
 {
    if (s1->length + 1 >= s1->allocSize)
    {
@@ -126,8 +188,14 @@ int strAddChar(string *s1, char c)
    return STR_SUCCESS;
 }
 
+/**
+ * @brief Copy the content of one string into another
+ *
+ * @param s1 The string to copy into
+ * @param s2 The string to copy from
+ * @return Exit code (0 = success)
+ */
 int strCopyString(string *s1, string *s2)
-// prekopiruje retezec s2 do s1
 {
    int newLength = s2->length;
    if (newLength >= s1->allocSize)
@@ -142,8 +210,14 @@ int strCopyString(string *s1, string *s2)
    return STR_SUCCESS;
 }
 
+/**
+ * @brief Concatenates a string after another
+ *
+ * @param s1 The string to concatenate to
+ * @param s2 The string to concatenate from
+ * @return Exit code (0 = success)
+ */
 int strConcatString(string *s1, string *s2)
-// prida retezec s2 za retezec s1
 {
    int newLength = s1->length + s2->length;
    if (newLength >= s1->allocSize)
@@ -158,26 +232,48 @@ int strConcatString(string *s1, string *s2)
    return STR_SUCCESS;
 }
 
+/**
+ * @brief Compare two strings
+ *
+ * @param s1 First string
+ * @param s2 Second string
+ * @return Identical to strcmp output (0 -> strings match)
+ */
 int strCmpString(string *s1, string *s2)
-// porovna oba retezce a vrati vysledek
 {
    return strcmp(s1->str, s2->str);
 }
 
+/**
+ * @brief Compare a string to a c-string
+ *
+ * @param s1 The string
+ * @param s2 The c-string
+ * @return Identical to strcmp output (0 -> strings match)
+ */
 int strCmpConstStr(string *s1, char* s2)
-// porovna nas retezec s konstantnim retezcem
 {
    return strcmp(s1->str, s2);
 }
 
+/**
+ * @brief Get the c-string content of a string
+ *
+ * @param s The string
+ * @return Raw string content
+ */
 char *strGetStr(string *s)
-// vrati textovou cast retezce
 {
    return s->str;
 }
 
+/**
+ * @brief Get string length
+ *
+ * @param s The string
+ * @return String length
+ */
 int strGetLength(string *s)
-// vrati delku daneho retezce
 {
    return s->length;
 }
